@@ -164,3 +164,19 @@ body {
     @apply font-sans;
   }
 }
+
+@keyframes aurora {
+  0% {
+    transform: translate(0%, 0%) rotate(0deg);
+  }
+  50% {
+    transform: translate(10%, 10%) rotate(180deg);
+  }
+  100% {
+    transform: translate(0%, 0%) rotate(360deg);
+  }
+}
+
+.animate-aurora {
+  animation: aurora 20s linear infinite;
+}
