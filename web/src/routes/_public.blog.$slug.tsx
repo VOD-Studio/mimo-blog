@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { Loading } from "@/components/shared/Loading";
 import { postKeys } from "@/features/posts/api/keys";
 import { fetchPostBySlug } from "@/features/posts/api/queries";
 import { PostContent } from "@/features/posts/components/PostContent";
@@ -20,7 +21,11 @@ function BlogDetailPage() {
   });
 
   if (isLoading) {
-    return <div className="container mx-auto px-4 py-12">加载中...</div>;
+    return (
+      <div className="container mx-auto px-4 py-12">
+        <Loading />
+      </div>
+    );
   }
 
   if (!data) {

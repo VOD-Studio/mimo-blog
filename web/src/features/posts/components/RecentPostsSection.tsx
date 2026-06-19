@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-
+import { SkeletonCardGrid } from "@/components/shared/SkeletonCardGrid";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 
@@ -17,7 +17,12 @@ export function RecentPostsSection() {
   });
 
   if (isLoading) {
-    return <div className="container mx-auto px-4 py-12">加载中...</div>;
+    return (
+      <section className="container mx-auto px-4 py-12">
+        <h2 className="mb-8 text-2xl font-bold">最近文章</h2>
+        <SkeletonCardGrid count={6} />
+      </section>
+    );
   }
 
   return (

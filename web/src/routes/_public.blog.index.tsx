@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { SkeletonCardGrid } from "@/components/shared/SkeletonCardGrid";
 import { postKeys } from "@/features/posts/api/keys";
 import { fetchPosts } from "@/features/posts/api/queries";
 import { PostCard } from "@/features/posts/components/PostCard";
@@ -21,7 +22,7 @@ function BlogListPage() {
     <div className="container mx-auto px-4 py-12">
       <h1 className="mb-8 text-3xl font-bold">博客</h1>
       {isLoading ? (
-        <p>加载中...</p>
+        <SkeletonCardGrid count={12} />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {data?.items.map((post) => (

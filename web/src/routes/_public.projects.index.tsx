@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { SkeletonCardGrid } from "@/components/shared/SkeletonCardGrid";
 import { projectKeys } from "@/features/projects/api/keys";
 import { fetchProjects } from "@/features/projects/api/queries";
 import { ProjectCard } from "@/features/projects/components/ProjectCard";
@@ -21,7 +22,7 @@ function ProjectsPage() {
     <div className="container mx-auto px-4 py-12">
       <h1 className="mb-8 text-3xl font-bold">项目</h1>
       {isLoading ? (
-        <p>加载中...</p>
+        <SkeletonCardGrid count={9} />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {data?.map((project) => (
