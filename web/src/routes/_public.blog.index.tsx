@@ -25,7 +25,7 @@ function BlogListPage() {
         <SkeletonCardGrid count={12} />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {data?.items.map((post) => (
+          {data?.data.map((post) => (
             <PostCard key={post.id} post={post} />
           ))}
         </div>

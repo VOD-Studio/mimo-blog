@@ -25,7 +25,7 @@ export function PostCard({ post }: PostCardProps) {
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">
-          {formatDate(post.publishedAt)} · {post.viewCount} 次阅读
+          {post.published_at ? formatDate(post.published_at) : "未发布"} · {post.view_count} 次阅读
         </p>
         <p className="mt-2 line-clamp-3 text-muted-foreground">{post.excerpt}</p>
       </CardContent>

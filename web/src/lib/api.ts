@@ -3,6 +3,53 @@ import axios, { type AxiosError, type AxiosRequestConfig } from "axios";
 import { env } from "./env";
 
 /**
+ * 后端统一响应信封
+ */
+export interface ApiResponse<T> {
+  /** 业务数据 */
+  data: T;
+  /** 元信息（消息、分页等） */
+  meta?: {
+    message?: string;
+    pagination?: PaginationMeta;
+  };
+}
+
+/**
+ * 分页元信息
+ */
+export interface PaginationMeta {
+  /** 当前页 */
+  page: number;
+  /** 每页数量 */
+  limit: number;
+  /** 总条数 */
+  total: number;
+  /** 总页数 */
+  total_pages: number;
+  /** 是否还有更多 */
+  has_more: boolean;
+}
+
+/**
+ * 列表响应结构
+ */
+export interface ListResponse<T> {
+  /** 数据列表 */
+  data: T[];
+  /** 分页元信息 */
+  meta: { pagination: PaginationMeta };
+}
+
+/**
+ * 判断请求是否需要解包后端统一信封
+ */
+function shouldUnpackEnvelope(url?: string): boolean {
+  if (!url) return false;
+  return url.startsWith("/api/v1");
+}
+
+/**
  * 全局 axios 实例
  */
 export const api = axios.create({
@@ -38,9 +85,18 @@ function getRefreshToken(): string | null {
 /**
  * 持久化 token（仅在客户端）
  */
-function setTokens(accessToken: string) {
+function setAccessToken(accessToken: string) {
   if (isClient()) {
     localStorage.setItem("accessToken", accessToken);
+  }
+}
+
+/**
+ * 持久化 refresh token（仅在客户端）
+ */
+function setRefreshToken(refreshToken: string) {
+  if (isClient()) {
+    localStorage.setItem("refreshToken", refreshToken);
   }
 }
 
@@ -86,8 +142,14 @@ api.interceptors.request.use((config) => {
 });
 
 api.interceptors.response.use(
-  (response) => response,
-  async (error: AxiosError) => {
+  (response) => {
+    if (shouldUnpackEnvelope(response.config.url)) {
+      const envelope = response.data as ApiResponse<unknown>;
+      response.data = envelope.data;
+    }
+    return response;
+  },
+  async (error: AxiosError<ApiResponse<unknown>>) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -107,14 +169,19 @@ api.interceptors.response.use(
 
       try {
         const refreshToken = getRefreshToken();
-        const response = await axios.post(`${env.VITE_API_URL}/auth/refresh`, {
-          refreshToken,
+        const response = await axios.post<
+          ApiResponse<{ access_token: string; refresh_token?: string }>
+        >(`${env.VITE_API_URL}/auth/refresh`, {
+          refresh_token: refreshToken,
         });
-        const { accessToken } = response.data as { accessToken: string };
-        setTokens(accessToken);
-        onTokenRefreshed(accessToken);
+        const { access_token, refresh_token } = response.data.data;
+        setAccessToken(access_token);
+        if (refresh_token) {
+          setRefreshToken(refresh_token);
+        }
+        onTokenRefreshed(access_token);
         if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
         }
         return api(originalRequest);
       } catch {

@@ -1,8 +1,8 @@
-import type { PostDetail } from "../types";
+import type { Post } from "../types";
 
 interface PostContentProps {
   /** 文章详情 */
-  post: PostDetail;
+  post: Post;
 }
 
 /**
@@ -13,7 +13,7 @@ export function PostContent({ post }: PostContentProps) {
     <article className="prose dark:prose-invert max-w-none">
       <h1>{post.title}</h1>
       {/* biome-ignore lint/security/noDangerouslySetInnerHtml: post content from trusted admin editor */}
-      <div dangerouslySetInnerHTML={{ __html: post.content }} />
+      <div dangerouslySetInnerHTML={{ __html: post.content_html }} />
     </article>
   );
 }

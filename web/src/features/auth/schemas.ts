@@ -5,7 +5,7 @@ import { z } from "zod";
  */
 export const loginSchema = z.object({
   email: z.string().email("请输入有效的邮箱"),
-  password: z.string().min(6, "密码至少 6 位"),
+  password: z.string().min(8, "密码至少 8 位"),
 });
 
 /**
@@ -13,9 +13,9 @@ export const loginSchema = z.object({
  */
 export const registerSchema = z
   .object({
-    username: z.string().min(2, "用户名至少 2 位"),
+    username: z.string().min(3, "用户名至少 3 位").max(32, "用户名最多 32 位"),
     email: z.string().email("请输入有效的邮箱"),
-    password: z.string().min(6, "密码至少 6 位"),
+    password: z.string().min(8, "密码至少 8 位"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {

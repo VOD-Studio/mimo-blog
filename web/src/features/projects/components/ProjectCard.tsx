@@ -15,14 +15,14 @@ export function ProjectCard({ project }: ProjectCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{project.name}</CardTitle>
+        <CardTitle>{project.title}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground">{project.description}</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          {project.tags.map((tag) => (
-            <Badge key={tag} variant="secondary">
-              {tag}
+          {project.tech_stack.map((tech) => (
+            <Badge key={tech} variant="secondary">
+              {tech}
             </Badge>
           ))}
         </div>

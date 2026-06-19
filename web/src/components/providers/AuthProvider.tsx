@@ -1,6 +1,8 @@
 "use client";
 
 import { type ReactNode, useEffect } from "react";
+
+import { fetchMe } from "@/features/auth/api/mutations";
 import { useAuthStore } from "@/features/auth/store";
 
 interface AuthProviderProps {
@@ -9,15 +11,41 @@ interface AuthProviderProps {
 }
 
 /**
- * 初始化认证状态，Zustand persist 会自动从 localStorage 恢复。
- * 在 SSR 场景下，初始状态为空，hydration 完成后由 persist 中间件恢复。
+ * 初始化认证状态。
+ *
+ * 若本地存有 access token，则尝试调用 /auth/me 恢复用户信息；
+ * 否则仅标记初始化完成。
  */
 export function AuthProvider({ children }: AuthProviderProps) {
   const initialize = useAuthStore((state) => state.initialize);
+  const setAuth = useAuthStore((state) => state.setAuth);
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const refreshToken = useAuthStore((state) => state.refreshToken);
 
   useEffect(() => {
-    initialize();
-  }, [initialize]);
+    async function restoreAuth() {
+      if (!accessToken) {
+        initialize();
+        return;
+      }
+
+      try {
+        const user = await fetchMe();
+        setAuth({
+          user,
+          accessToken,
+          refreshToken: refreshToken ?? "",
+        });
+      } catch {
+        clearAuth();
+      } finally {
+        initialize();
+      }
+    }
+
+    restoreAuth();
+  }, [accessToken, refreshToken, initialize, setAuth, clearAuth]);
 
   return children;
 }

@@ -38,6 +38,8 @@ interface AuthState {
   isInitialized: boolean;
   /** 设置认证信息 */
   setAuth: (auth: { user: AuthUser; accessToken: string; refreshToken: string }) => void;
+  /** 设置 token（登录/刷新后） */
+  setTokens: (auth: { accessToken: string; refreshToken: string }) => void;
   /** 清除认证 */
   clearAuth: () => void;
   /** 从持久化恢复 */
@@ -65,6 +67,12 @@ export const useAuthStore = create<AuthState>()(
           refreshToken: auth.refreshToken,
           isInitialized: true,
         }),
+      setTokens: (auth) =>
+        set({
+          accessToken: auth.accessToken,
+          refreshToken: auth.refreshToken,
+          isInitialized: true,
+        }),
       clearAuth: () =>
         set({
           user: null,
@@ -78,6 +86,11 @@ export const useAuthStore = create<AuthState>()(
       name: "auth-storage",
       storage: createJSONStorage(() => (isClient() ? localStorage : noopStorage)),
       skipHydration: true,
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+      }),
     },
   ),
 );

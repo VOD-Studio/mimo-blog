@@ -18,7 +18,12 @@ export function RegisterForm() {
   });
 
   return (
-    <form onSubmit={form.handleSubmit((data) => mutate(data))} className="space-y-4">
+    <form
+      onSubmit={form.handleSubmit(({ username, email, password }) =>
+        mutate({ username, email, password }),
+      )}
+      className="space-y-4"
+    >
       <div>
         <Label htmlFor="username">用户名</Label>
         <Input id="username" {...form.register("username")} />

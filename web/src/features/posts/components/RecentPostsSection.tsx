@@ -29,7 +29,7 @@ export function RecentPostsSection() {
     <section className="container mx-auto px-4 py-12">
       <h2 className="mb-8 text-2xl font-bold">最近文章</h2>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {data?.items.map((post) => (
+        {data?.data.map((post) => (
           <Card key={post.id}>
             <CardHeader>
               <CardTitle>
@@ -39,7 +39,9 @@ export function RecentPostsSection() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">{formatDate(post.publishedAt)}</p>
+              <p className="text-sm text-muted-foreground">
+                {post.published_at ? formatDate(post.published_at) : "未发布"}
+              </p>
               <p className="mt-2 line-clamp-3 text-muted-foreground">{post.excerpt}</p>
             </CardContent>
           </Card>
