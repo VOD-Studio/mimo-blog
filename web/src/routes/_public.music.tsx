@@ -3,9 +3,8 @@ import { Headphones } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { BentoGrid } from "@/components/reactbits/BentoGrid";
-import { ScrollReveal } from "@/components/reactbits/ScrollReveal";
-import { ShinyText } from "@/components/reactbits/ShinyText";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MusicPlayer } from "@/features/music/components/MusicPlayer";
 import { PlaylistPanel } from "@/features/music/components/PlaylistPanel";
@@ -55,14 +54,7 @@ function MusicPage() {
 
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
-      <ScrollReveal>
-        <header className="mb-12 max-w-2xl">
-          <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl">
-            <ShinyText>音乐</ShinyText>
-          </h1>
-          <p className="mt-4 text-lg text-muted-foreground">当前播放的歌单与灵感来源。</p>
-        </header>
-      </ScrollReveal>
+      <PageHeader title="音乐" description="当前播放的歌单与灵感来源。" />
 
       {isLoading ? (
         <BentoGrid columns={3}>

@@ -3,9 +3,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { BlurText } from "@/components/reactbits/BlurText";
 import { RippleButton } from "@/components/reactbits/RippleButton";
-import { ScrollReveal } from "@/components/reactbits/ScrollReveal";
 import { cn } from "@/lib/utils";
 
 interface EmptyStateProps {
@@ -32,8 +30,7 @@ interface EmptyStateProps {
 /**
  * 通用空状态组件
  *
- * 使用 ReactBits 动效（BlurText + ScrollReveal + RippleButton），
- * 为列表/搜索/404 等场景提供统一的 empty state 体验。
+ * 静态展示，避免再增加进场动画造成视觉疲劳。
  */
 export function EmptyState({
   icon: Icon,
@@ -60,7 +57,7 @@ export function EmptyState({
           variant === "default" ? "text-xl" : "text-lg",
         )}
       >
-        <BlurText text={title} delay={15} />
+        {title}
       </h3>
       {description && (
         <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">{description}</p>
@@ -94,10 +91,10 @@ export function EmptyState({
   }
 
   return (
-    <ScrollReveal className={cn("py-16 text-center md:py-24", className)}>
+    <div className={cn("py-16 text-center md:py-24", className)}>
       <div className="mx-auto max-w-md rounded-3xl border border-border/60 bg-muted/70 p-8 shadow-sm backdrop-blur-sm dark:bg-card/70 md:p-12">
         {content}
       </div>
-    </ScrollReveal>
+    </div>
   );
 }

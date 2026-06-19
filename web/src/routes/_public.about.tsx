@@ -4,11 +4,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, Github, Mail, Sparkles } from "lucide-react";
 
 import { BentoGrid } from "@/components/reactbits/BentoGrid";
-import { BlurText } from "@/components/reactbits/BlurText";
 import { RippleButton } from "@/components/reactbits/RippleButton";
-import { ScrollReveal } from "@/components/reactbits/ScrollReveal";
-import { ShinyText } from "@/components/reactbits/ShinyText";
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePublicSettings } from "@/features/settings/hooks/usePublicSettings";
 
@@ -34,21 +32,17 @@ function AboutPage() {
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
       <div className="mx-auto max-w-6xl">
-        <ScrollReveal className="mb-12 text-center md:mb-16">
-          <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
-            <ShinyText>关于</ShinyText>
-          </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-            {isLoading ? (
+        <PageHeader
+          title="关于"
+          description={
+            isLoading ? (
               <Skeleton className="mx-auto h-6 w-3/4" />
             ) : (
-              <BlurText
-                text={settings?.site_description ?? "记录技术、设计与生活的数字花园。"}
-                delay={20}
-              />
-            )}
-          </p>
-        </ScrollReveal>
+              (settings?.site_description ?? "记录技术、设计与生活的数字花园。")
+            )
+          }
+          align="center"
+        />
 
         <BentoGrid columns={3}>
           {/* Bio */}
