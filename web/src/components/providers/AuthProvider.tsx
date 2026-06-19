@@ -22,6 +22,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const accessToken = useAuthStore((state) => state.accessToken);
   const refreshToken = useAuthStore((state) => state.refreshToken);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     async function restoreAuth() {
@@ -30,10 +31,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
+      // 已存在用户信息时无需重复请求（例如登录/注册 mutation 已主动设置）
+      if (user) {
+        initialize();
+        return;
+      }
+
       try {
-        const user = await fetchMe();
+        const me = await fetchMe();
         setAuth({
-          user,
+          user: me,
           accessToken,
           refreshToken: refreshToken ?? "",
         });
@@ -45,7 +52,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     restoreAuth();
-  }, [accessToken, refreshToken, initialize, setAuth, clearAuth]);
+  }, [accessToken, refreshToken, user, initialize, setAuth, clearAuth]);
 
   return children;
 }
