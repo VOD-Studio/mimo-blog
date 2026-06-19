@@ -46,8 +46,8 @@ export function BentoCard({
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-3xl border border-border/60 bg-card/70 p-6 text-card-foreground shadow-sm backdrop-blur-xl transition-all duration-300 ease-out",
-        "hover:-translate-y-1 hover:bg-card/90 hover:shadow-xl hover:shadow-primary/[0.07]",
+        "group relative flex flex-col overflow-hidden rounded-3xl border border-border/60 bg-muted/70 p-6 text-card-foreground shadow-sm backdrop-blur-xl transition-all duration-300 ease-out dark:bg-card/70",
+        "hover:-translate-y-1 hover:bg-muted/90 hover:shadow-xl hover:shadow-primary/[0.07] dark:hover:bg-card/90",
         "before:pointer-events-none before:absolute before:inset-0 before:rounded-3xl before:bg-gradient-to-br before:from-primary/[0.03] before:to-transparent before:opacity-0 before:transition-opacity hover:before:opacity-100",
         spanClasses.col[colSpan],
         spanClasses.row[rowSpan],

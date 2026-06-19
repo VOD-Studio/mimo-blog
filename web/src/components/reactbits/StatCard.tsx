@@ -4,7 +4,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-import { BentoCard } from "./BentoCard";
+import { SpotlightCard } from "./SpotlightCard";
 
 interface StatCardProps {
   value: number;
@@ -44,7 +44,7 @@ export function StatCard({ value, label, icon, suffix = "", className }: StatCar
   }, [value]);
 
   return (
-    <BentoCard className={cn("justify-between", className)}>
+    <SpotlightCard className={cn("justify-between", className)}>
       {icon && <div className="mb-4 text-primary">{icon}</div>}
       <div>
         <div className="text-4xl font-bold tracking-tight">
@@ -53,6 +53,6 @@ export function StatCard({ value, label, icon, suffix = "", className }: StatCar
         </div>
         <div className="mt-1 text-sm text-muted-foreground">{label}</div>
       </div>
-    </BentoCard>
+    </SpotlightCard>
   );
 }
