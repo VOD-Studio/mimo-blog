@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { ScrollReveal } from "@/components/reactbits/ScrollReveal";
 import { SkeletonCardGrid } from "@/components/shared/SkeletonCardGrid";
 import { projectKeys } from "@/features/projects/api/keys";
 import { fetchProjects } from "@/features/projects/api/queries";
@@ -25,8 +26,10 @@ function ProjectsPage() {
         <SkeletonCardGrid count={9} />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {data?.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+          {data?.map((project, index) => (
+            <ScrollReveal key={project.id} delay={index * 80}>
+              <ProjectCard project={project} />
+            </ScrollReveal>
           ))}
         </div>
       )}

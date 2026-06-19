@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { ScrollReveal } from "@/components/reactbits/ScrollReveal";
 import { SkeletonCardGrid } from "@/components/shared/SkeletonCardGrid";
 import { postKeys } from "@/features/posts/api/keys";
 import { fetchPosts } from "@/features/posts/api/queries";
@@ -25,8 +26,10 @@ function BlogListPage() {
         <SkeletonCardGrid count={12} />
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {data?.data.map((post) => (
-            <PostCard key={post.id} post={post} />
+          {data?.data.map((post, index) => (
+            <ScrollReveal key={post.id} delay={index * 60}>
+              <PostCard post={post} />
+            </ScrollReveal>
           ))}
         </div>
       )}
