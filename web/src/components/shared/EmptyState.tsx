@@ -79,12 +79,7 @@ export function EmptyState({
 
   if (variant === "compact") {
     return (
-      <div
-        className={cn(
-          "flex flex-col items-center justify-center rounded-3xl border border-dashed border-border/60 bg-muted/30 p-8 text-center",
-          className,
-        )}
-      >
+      <div className={cn("flex flex-col items-center justify-center py-8 text-center", className)}>
         {content}
       </div>
     );
