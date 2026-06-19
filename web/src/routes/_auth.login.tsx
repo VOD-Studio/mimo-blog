@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-import { GlassCard } from "@/components/reactbits/GlassCard";
+import { BentoCard } from "@/components/reactbits/BentoCard";
 import { GradientText } from "@/components/reactbits/GradientText";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_auth/login")({
  */
 function LoginPage() {
   return (
-    <GlassCard className="w-full">
+    <BentoCard className="w-full p-8">
       <div className="mb-6 space-y-2 text-center">
         <h1 className="text-2xl font-bold tracking-tight">
           <GradientText>欢迎回来</GradientText>
@@ -30,6 +30,6 @@ function LoginPage() {
           立即注册
         </Link>
       </p>
-    </GlassCard>
+    </BentoCard>
   );
 }

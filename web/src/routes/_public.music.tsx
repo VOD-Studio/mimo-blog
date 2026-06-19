@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
+import { BentoGrid } from "@/components/reactbits/BentoGrid";
 import { GradientText } from "@/components/reactbits/GradientText";
 import { ScrollReveal } from "@/components/reactbits/ScrollReveal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -53,55 +54,38 @@ function MusicPage() {
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
       <ScrollReveal>
-        <section className="mx-auto max-w-3xl text-center">
+        <header className="mb-12 max-w-2xl">
           <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl">
-            <GradientText>音乐空间</GradientText>
+            <GradientText>音乐</GradientText>
           </h1>
-          <p className="mt-4 text-lg text-muted-foreground">聆听旋律，记录此刻的心情与灵感。</p>
-        </section>
+          <p className="mt-4 text-lg text-muted-foreground">当前播放的歌单与灵感来源。</p>
+        </header>
       </ScrollReveal>
 
-      <div className="mx-auto mt-12 grid max-w-5xl gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <ScrollReveal delay={100}>
-          {isLoading ? (
-            <div className="flex aspect-square flex-col items-center justify-center gap-4 rounded-2xl border bg-muted/50 p-8">
-              <Skeleton className="h-56 w-56 rounded-full" />
-              <Skeleton className="h-6 w-1/2" />
-              <Skeleton className="h-4 w-1/3" />
-              <div className="flex gap-4">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <Skeleton className="h-14 w-14 rounded-full" />
-                <Skeleton className="h-10 w-10 rounded-full" />
-              </div>
-            </div>
-          ) : (
-            <MusicPlayer
-              currentSong={currentSong}
-              isPlaying={isPlaying}
-              onTogglePlay={handleTogglePlay}
-              onPrevious={handlePrevious}
-              onNext={handleNext}
-            />
-          )}
-        </ScrollReveal>
-
-        <ScrollReveal delay={200}>
-          {isLoading ? (
-            <div className="h-[520px] rounded-2xl border bg-muted/50 p-4">
-              {Array.from({ length: 6 }).map((_, index) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
-                <Skeleton key={index} className="mb-3 h-14 w-full rounded-lg" />
-              ))}
-            </div>
-          ) : songs.length > 0 ? (
-            <PlaylistPanel songs={songs} currentIndex={currentIndex} onSelect={handleSelect} />
-          ) : (
-            <div className="flex h-[520px] items-center justify-center rounded-2xl border bg-muted/50 p-8 text-center text-muted-foreground">
-              <p>暂无启用歌单，请在后台导入并启用歌单。</p>
-            </div>
-          )}
-        </ScrollReveal>
-      </div>
+      {isLoading ? (
+        <BentoGrid columns={3}>
+          <div className="md:col-span-2 md:row-span-2">
+            <Skeleton className="h-full min-h-[420px] w-full rounded-3xl" />
+          </div>
+          <Skeleton className="h-96 w-full rounded-3xl" />
+          <Skeleton className="h-48 w-full rounded-3xl" />
+        </BentoGrid>
+      ) : songs.length > 0 ? (
+        <BentoGrid columns={3}>
+          <MusicPlayer
+            currentSong={currentSong}
+            isPlaying={isPlaying}
+            onTogglePlay={handleTogglePlay}
+            onPrevious={handlePrevious}
+            onNext={handleNext}
+          />
+          <PlaylistPanel songs={songs} currentIndex={currentIndex} onSelect={handleSelect} />
+        </BentoGrid>
+      ) : (
+        <div className="rounded-3xl border border-dashed bg-muted/30 p-16 text-center text-muted-foreground">
+          <p>暂无启用歌单，请在后台导入并启用歌单。</p>
+        </div>
+      )}
     </div>
   );
 }

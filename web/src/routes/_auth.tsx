@@ -14,7 +14,7 @@ function AuthLayout() {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
       <AuroraBackground className="opacity-60" />
-      <ParticleBackground quantity={60} staticity={60} />
+      <ParticleBackground quantity={40} staticity={80} />
       <div className="relative z-10 w-full max-w-md">
         <Outlet />
       </div>
