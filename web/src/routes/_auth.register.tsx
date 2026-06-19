@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlassCard } from "@/components/reactbits/GlassCard";
+import { GradientText } from "@/components/reactbits/GradientText";
 import { RegisterForm } from "@/features/auth/components/RegisterForm";
 
 export const Route = createFileRoute("/_auth/register")({
@@ -12,16 +13,20 @@ export const Route = createFileRoute("/_auth/register")({
  */
 function RegisterPage() {
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>注册</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <RegisterForm />
-        <p className="mt-4 text-center text-sm">
-          已有账号？<Link to="/login">登录</Link>
-        </p>
-      </CardContent>
-    </Card>
+    <GlassCard className="w-full">
+      <div className="mb-6 space-y-2 text-center">
+        <h1 className="text-2xl font-bold tracking-tight">
+          <GradientText>创建账号</GradientText>
+        </h1>
+        <p className="text-sm text-muted-foreground">填写下方信息开启博客之旅</p>
+      </div>
+      <RegisterForm />
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        已有账号？{" "}
+        <Link to="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+          立即登录
+        </Link>
+      </p>
+    </GlassCard>
   );
 }

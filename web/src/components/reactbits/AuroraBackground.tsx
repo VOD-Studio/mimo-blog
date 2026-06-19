@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 interface AuroraBackgroundProps {
   /** 子元素 */
-  children: React.ReactNode;
+  children?: React.ReactNode;
   /** 额外类名 */
   className?: string;
 }

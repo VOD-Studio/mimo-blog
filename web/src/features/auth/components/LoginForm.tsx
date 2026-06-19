@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 
-import { Button } from "@/components/ui/button";
+import { MagneticButton } from "@/components/reactbits/MagneticButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -18,24 +19,47 @@ export function LoginForm() {
   });
 
   return (
-    <form onSubmit={form.handleSubmit((data) => mutate(data))} className="space-y-4">
-      <div>
+    <form onSubmit={form.handleSubmit((data) => mutate(data))} className="space-y-5">
+      <div className="space-y-2">
         <Label htmlFor="email">邮箱</Label>
-        <Input id="email" type="email" {...form.register("email")} />
+        <Input
+          id="email"
+          type="email"
+          placeholder="name@example.com"
+          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          {...form.register("email")}
+        />
         {form.formState.errors.email && (
           <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
         )}
       </div>
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="password">密码</Label>
-        <Input id="password" type="password" {...form.register("password")} />
+        <Input
+          id="password"
+          type="password"
+          placeholder="••••••••"
+          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          {...form.register("password")}
+        />
         {form.formState.errors.password && (
           <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
         )}
       </div>
-      <Button type="submit" disabled={isPending} className="w-full">
-        {isPending ? "登录中..." : "登录"}
-      </Button>
+      <MagneticButton
+        type="submit"
+        disabled={isPending}
+        className="w-full h-11 text-base shadow-lg shadow-primary/25"
+      >
+        {isPending ? (
+          <>
+            <Loader2 className="mr-2 size-4 animate-spin" />
+            登录中
+          </>
+        ) : (
+          "登录"
+        )}
+      </MagneticButton>
     </form>
   );
 }

@@ -1,7 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 
-import { Button } from "@/components/ui/button";
+import { MagneticButton } from "@/components/reactbits/MagneticButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -22,41 +23,75 @@ export function RegisterForm() {
       onSubmit={form.handleSubmit(({ username, email, password }) =>
         mutate({ username, email, password }),
       )}
-      className="space-y-4"
+      className="space-y-5"
     >
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="username">用户名</Label>
-        <Input id="username" {...form.register("username")} />
+        <Input
+          id="username"
+          placeholder="yourname"
+          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          {...form.register("username")}
+        />
         {form.formState.errors.username && (
           <p className="text-sm text-destructive">{form.formState.errors.username.message}</p>
         )}
       </div>
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="email">邮箱</Label>
-        <Input id="email" type="email" {...form.register("email")} />
+        <Input
+          id="email"
+          type="email"
+          placeholder="name@example.com"
+          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          {...form.register("email")}
+        />
         {form.formState.errors.email && (
           <p className="text-sm text-destructive">{form.formState.errors.email.message}</p>
         )}
       </div>
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="password">密码</Label>
-        <Input id="password" type="password" {...form.register("password")} />
+        <Input
+          id="password"
+          type="password"
+          placeholder="••••••••"
+          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          {...form.register("password")}
+        />
         {form.formState.errors.password && (
           <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
         )}
       </div>
-      <div>
+      <div className="space-y-2">
         <Label htmlFor="confirmPassword">确认密码</Label>
-        <Input id="confirmPassword" type="password" {...form.register("confirmPassword")} />
+        <Input
+          id="confirmPassword"
+          type="password"
+          placeholder="••••••••"
+          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          {...form.register("confirmPassword")}
+        />
         {form.formState.errors.confirmPassword && (
           <p className="text-sm text-destructive">
             {form.formState.errors.confirmPassword.message}
           </p>
         )}
       </div>
-      <Button type="submit" disabled={isPending} className="w-full">
-        {isPending ? "注册中..." : "注册"}
-      </Button>
+      <MagneticButton
+        type="submit"
+        disabled={isPending}
+        className="w-full h-11 text-base shadow-lg shadow-primary/25"
+      >
+        {isPending ? (
+          <>
+            <Loader2 className="mr-2 size-4 animate-spin" />
+            注册中
+          </>
+        ) : (
+          "注册"
+        )}
+      </MagneticButton>
     </form>
   );
 }
