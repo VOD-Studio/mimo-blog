@@ -23,7 +23,7 @@ export function useLoginMutation() {
         refreshToken: data.refresh_token,
       });
       toast.success("登录成功");
-      navigate({ to: "/" });
+      navigate({ to: "/", replace: true });
     },
     onError: () => {
       useAuthStore.getState().clearAuth();

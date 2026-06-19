@@ -23,7 +23,7 @@ export function useRegisterMutation() {
         refreshToken: data.refresh_token,
       });
       toast.success("注册成功");
-      navigate({ to: "/" });
+      navigate({ to: "/", replace: true });
     },
     onError: () => {
       useAuthStore.getState().clearAuth();
