@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as PublicIndexRouteImport } from './routes/_public.index'
+import { Route as PublicProfileRouteImport } from './routes/_public.profile'
 import { Route as PublicMusicRouteImport } from './routes/_public.music'
 import { Route as PublicAboutRouteImport } from './routes/_public.about'
 import { Route as AuthRegisterRouteImport } from './routes/_auth.register'
@@ -31,6 +32,11 @@ const AuthRoute = AuthRouteImport.update({
 const PublicIndexRoute = PublicIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => PublicRoute,
+} as any)
+const PublicProfileRoute = PublicProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => PublicRoute,
 } as any)
 const PublicMusicRoute = PublicMusicRouteImport.update({
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof AuthRegisterRoute
   '/about': typeof PublicAboutRoute
   '/music': typeof PublicMusicRoute
+  '/profile': typeof PublicProfileRoute
   '/blog/$slug': typeof PublicBlogSlugRoute
   '/blog/': typeof PublicBlogIndexRoute
   '/projects/': typeof PublicProjectsIndexRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/register': typeof AuthRegisterRoute
   '/about': typeof PublicAboutRoute
   '/music': typeof PublicMusicRoute
+  '/profile': typeof PublicProfileRoute
   '/blog/$slug': typeof PublicBlogSlugRoute
   '/blog': typeof PublicBlogIndexRoute
   '/projects': typeof PublicProjectsIndexRoute
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/_auth/register': typeof AuthRegisterRoute
   '/_public/about': typeof PublicAboutRoute
   '/_public/music': typeof PublicMusicRoute
+  '/_public/profile': typeof PublicProfileRoute
   '/_public/': typeof PublicIndexRoute
   '/_public/blog/$slug': typeof PublicBlogSlugRoute
   '/_public/blog/': typeof PublicBlogIndexRoute
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/about'
     | '/music'
+    | '/profile'
     | '/blog/$slug'
     | '/blog/'
     | '/projects/'
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/about'
     | '/music'
+    | '/profile'
     | '/blog/$slug'
     | '/blog'
     | '/projects'
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/_auth/register'
     | '/_public/about'
     | '/_public/music'
+    | '/_public/profile'
     | '/_public/'
     | '/_public/blog/$slug'
     | '/_public/blog/'
@@ -163,6 +175,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof PublicIndexRouteImport
+      parentRoute: typeof PublicRoute
+    }
+    '/_public/profile': {
+      id: '/_public/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof PublicProfileRouteImport
       parentRoute: typeof PublicRoute
     }
     '/_public/music': {
@@ -232,6 +251,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 interface PublicRouteChildren {
   PublicAboutRoute: typeof PublicAboutRoute
   PublicMusicRoute: typeof PublicMusicRoute
+  PublicProfileRoute: typeof PublicProfileRoute
   PublicIndexRoute: typeof PublicIndexRoute
   PublicBlogSlugRoute: typeof PublicBlogSlugRoute
   PublicBlogIndexRoute: typeof PublicBlogIndexRoute
@@ -241,6 +261,7 @@ interface PublicRouteChildren {
 const PublicRouteChildren: PublicRouteChildren = {
   PublicAboutRoute: PublicAboutRoute,
   PublicMusicRoute: PublicMusicRoute,
+  PublicProfileRoute: PublicProfileRoute,
   PublicIndexRoute: PublicIndexRoute,
   PublicBlogSlugRoute: PublicBlogSlugRoute,
   PublicBlogIndexRoute: PublicBlogIndexRoute,

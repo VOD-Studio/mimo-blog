@@ -108,7 +108,6 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "auth-storage",
       storage: createJSONStorage(() => (isClient() ? localStorage : noopStorage)),
-      skipHydration: true,
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

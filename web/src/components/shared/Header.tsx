@@ -1,7 +1,7 @@
 "use client";
 
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOutIcon } from "lucide-react";
+import { LogOutIcon, UserIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { RippleButton } from "@/components/reactbits/RippleButton";
@@ -110,6 +110,18 @@ export function Header() {
                         <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                       </div>
                       <div className="my-1 h-px bg-border/60" />
+                      <RippleButton
+                        asChild
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-2 rounded-xl"
+                        onClick={() => setMenuOpen(false)}
+                      >
+                        <Link to="/profile">
+                          <UserIcon className="size-4" />
+                          个人资料
+                        </Link>
+                      </RippleButton>
                       <RippleButton
                         variant="ghost"
                         size="sm"
