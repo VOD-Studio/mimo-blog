@@ -2,15 +2,9 @@
 
 import { Link, useNavigate } from "@tanstack/react-router";
 import { LogOutIcon } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useEffect, useRef, useState } from "react";
+
+import { RippleButton } from "@/components/reactbits/RippleButton";
 import { useAuthStore } from "@/features/auth/store";
 import { usePublicSettings } from "@/features/settings/hooks/usePublicSettings";
 
@@ -24,6 +18,23 @@ const navItems = [
 ];
 
 /**
+ * 用户头像（用户名缩写回退）
+ */
+function UserAvatar({ username, avatarUrl }: { username: string; avatarUrl?: string }) {
+  const fallback = username?.slice(0, 2).toUpperCase() ?? "U";
+
+  return (
+    <span className="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xs font-medium text-primary">
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={username} className="h-full w-full object-cover" loading="lazy" />
+      ) : (
+        fallback
+      )}
+    </span>
+  );
+}
+
+/**
  * 前台顶部导航
  */
 export function Header() {
@@ -34,9 +45,26 @@ export function Header() {
   const user = useAuthStore((state) => state.user);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [menuOpen]);
+
   const handleLogout = () => {
     clearAuth();
-    navigate({ to: "/login" });
+    setMenuOpen(false);
+    navigate({ to: "/login", replace: true });
   };
 
   return (
@@ -57,39 +85,47 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
-            <div className="ml-2 flex items-center gap-2 border-l border-border/50 pl-2">
+            <div className="relative ml-2 flex items-center gap-1 border-l border-border/50 pl-2">
               <ThemeToggle />
               {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="relative flex h-8 w-8 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-                    <Avatar size="sm">
-                      <AvatarImage src={user.avatar_url} alt={user.username} />
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                        {user.username?.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel className="font-normal">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{user.username}</span>
-                        <span className="text-xs text-muted-foreground">{user.email}</span>
+                <div ref={menuRef}>
+                  <RippleButton
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 rounded-full px-2"
+                    onClick={() => setMenuOpen((prev) => !prev)}
+                    aria-expanded={menuOpen}
+                    aria-haspopup="menu"
+                  >
+                    <UserAvatar username={user.username} avatarUrl={user.avatar_url} />
+                    <span className="max-w-[80px] truncate text-xs font-medium">
+                      {user.username}
+                    </span>
+                  </RippleButton>
+
+                  {menuOpen && (
+                    <div className="absolute right-0 top-full mt-2 w-48 origin-top-right rounded-2xl border border-border/60 bg-muted/95 p-2 shadow-lg backdrop-blur-xl dark:bg-background/95">
+                      <div className="px-3 py-2">
+                        <p className="truncate text-sm font-medium">{user.username}</p>
+                        <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                       </div>
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onClick={handleLogout}>
-                      <LogOutIcon className="mr-2 size-4" />
-                      退出登录
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      <div className="my-1 h-px bg-border/60" />
+                      <RippleButton
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-2 rounded-xl text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={handleLogout}
+                      >
+                        <LogOutIcon className="size-4" />
+                        退出登录
+                      </RippleButton>
+                    </div>
+                  )}
+                </div>
               ) : (
-                <Link
-                  to="/login"
-                  className="rounded-xl px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-                >
-                  登录
-                </Link>
+                <RippleButton asChild variant="ghost" size="sm" className="rounded-full">
+                  <Link to="/login">登录</Link>
+                </RippleButton>
               )}
             </div>
           </nav>

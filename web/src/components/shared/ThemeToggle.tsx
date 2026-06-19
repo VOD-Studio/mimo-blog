@@ -4,7 +4,7 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { RippleButton } from "@/components/reactbits/RippleButton";
 
 /**
  * 主题切换按钮
@@ -20,9 +20,10 @@ export function ThemeToggle() {
   }, []);
 
   return (
-    <Button
+    <RippleButton
       variant="ghost"
       size="icon"
+      className="rounded-full"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
       aria-label="切换主题"
     >
@@ -35,6 +36,6 @@ export function ThemeToggle() {
       ) : (
         <Moon className="h-5 w-5" />
       )}
-    </Button>
+    </RippleButton>
   );
 }
