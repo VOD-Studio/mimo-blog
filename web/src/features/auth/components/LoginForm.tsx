@@ -26,7 +26,7 @@ export function LoginForm() {
           id="email"
           type="email"
           placeholder="name@example.com"
-          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          className="h-11 bg-background/50 backdrop-blur-sm"
           {...form.register("email")}
         />
         {form.formState.errors.email && (
@@ -39,7 +39,7 @@ export function LoginForm() {
           id="password"
           type="password"
           placeholder="••••••••"
-          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          className="h-11 bg-background/50 backdrop-blur-sm"
           {...form.register("password")}
         />
         {form.formState.errors.password && (

@@ -4,24 +4,23 @@ import { Github } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-import { GlassCard } from "./GlassCard";
-
 interface GitHubContributionsProps {
   username?: string;
   className?: string;
 }
 
 /**
- * GitHub 贡献图展示
+ * GitHub 贡献图内容
  *
  * 使用公开的 ghchart.rshig.com SVG 服务渲染贡献日历。
+ * 需要被包裹在 BentoCard 或类似卡片容器中。
  */
 export function GitHubContributions({ username, className }: GitHubContributionsProps) {
   const hasUsername = Boolean(username);
   const chartUrl = username ? `https://ghchart.rshig.com/${username}` : undefined;
 
   return (
-    <GlassCard className={cn("w-full", className)}>
+    <div className={cn("w-full", className)}>
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
           <Github className="size-5 text-primary" />
@@ -34,7 +33,7 @@ export function GitHubContributions({ username, className }: GitHubContributions
         </div>
       </div>
 
-      <div className="mt-6 flex min-h-[120px] items-center justify-center overflow-hidden rounded-xl bg-muted/50">
+      <div className="mt-6 flex min-h-[120px] items-center justify-center overflow-hidden rounded-2xl bg-muted/50">
         {chartUrl ? (
           <img
             src={chartUrl}
@@ -50,6 +49,6 @@ export function GitHubContributions({ username, className }: GitHubContributions
           </div>
         )}
       </div>
-    </GlassCard>
+    </div>
   );
 }

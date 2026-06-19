@@ -30,7 +30,7 @@ export function RegisterForm() {
         <Input
           id="username"
           placeholder="yourname"
-          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          className="h-11 bg-background/50 backdrop-blur-sm"
           {...form.register("username")}
         />
         {form.formState.errors.username && (
@@ -43,7 +43,7 @@ export function RegisterForm() {
           id="email"
           type="email"
           placeholder="name@example.com"
-          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          className="h-11 bg-background/50 backdrop-blur-sm"
           {...form.register("email")}
         />
         {form.formState.errors.email && (
@@ -56,7 +56,7 @@ export function RegisterForm() {
           id="password"
           type="password"
           placeholder="••••••••"
-          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          className="h-11 bg-background/50 backdrop-blur-sm"
           {...form.register("password")}
         />
         {form.formState.errors.password && (
@@ -69,7 +69,7 @@ export function RegisterForm() {
           id="confirmPassword"
           type="password"
           placeholder="••••••••"
-          className="h-11 bg-white/50 backdrop-blur-sm dark:bg-slate-900/50"
+          className="h-11 bg-background/50 backdrop-blur-sm"
           {...form.register("confirmPassword")}
         />
         {form.formState.errors.confirmPassword && (

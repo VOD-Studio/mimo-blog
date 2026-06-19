@@ -48,7 +48,7 @@ function AboutPage() {
         {/* Profile */}
         <BentoCard colSpan={2} rowSpan={2} className="justify-between p-8">
           <div>
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-brand to-accent-brand text-3xl font-bold text-white shadow-xl">
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-brand to-accent-brand text-3xl font-bold text-primary-foreground shadow-xl">
               {siteName.slice(0, 2).toUpperCase()}
             </div>
             <h2 className="text-3xl font-bold">{siteName}</h2>

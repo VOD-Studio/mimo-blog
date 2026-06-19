@@ -21,7 +21,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 px-4 py-3">
       <div className="container mx-auto">
-        <div className="flex h-14 items-center justify-between rounded-2xl border border-border/50 bg-background/70 px-4 shadow-sm backdrop-blur-xl dark:border-white/5 dark:bg-slate-950/60">
+        <div className="flex h-14 items-center justify-between rounded-2xl border border-border/60 bg-background/80 px-4 shadow-sm backdrop-blur-xl">
           <Link to="/" className="text-xl font-bold tracking-tight">
             {siteName}
           </Link>

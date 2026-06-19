@@ -70,7 +70,7 @@ export function TableOfContents({ contentHtml }: TableOfContentsProps) {
 
   return (
     <aside className="hidden lg:block">
-      <div className="sticky top-24 rounded-2xl border border-border/50 bg-card/60 p-5 backdrop-blur-xl dark:border-white/5 dark:bg-slate-950/40">
+      <div className="sticky top-24 rounded-2xl border border-border/60 bg-card/70 p-5 backdrop-blur-xl">
         <h2 className="mb-4 text-sm font-semibold">目录</h2>
         <nav className="max-h-[calc(100vh-220px)] overflow-y-auto">
           <ul className="space-y-2">
