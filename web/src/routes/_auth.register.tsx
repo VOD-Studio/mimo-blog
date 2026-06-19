@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
-import { BentoCard } from "@/components/reactbits/BentoCard";
-import { GradientText } from "@/components/reactbits/GradientText";
+import { ShinyText } from "@/components/reactbits/ShinyText";
+import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
 import { RegisterForm } from "@/features/auth/components/RegisterForm";
 
 export const Route = createFileRoute("/_auth/register")({
@@ -13,10 +13,10 @@ export const Route = createFileRoute("/_auth/register")({
  */
 function RegisterPage() {
   return (
-    <BentoCard className="w-full p-8">
+    <SpotlightCard className="w-full p-8">
       <div className="mb-6 space-y-2 text-center">
         <h1 className="text-2xl font-bold tracking-tight">
-          <GradientText>创建账号</GradientText>
+          <ShinyText>创建账号</ShinyText>
         </h1>
         <p className="text-sm text-muted-foreground">填写下方信息开启博客之旅</p>
       </div>
@@ -27,6 +27,6 @@ function RegisterPage() {
           立即登录
         </Link>
       </p>
-    </BentoCard>
+    </SpotlightCard>
   );
 }

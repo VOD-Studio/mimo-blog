@@ -1,20 +1,16 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-
 /**
- * 卡片骨架屏
+ * Bento 风格卡片骨架屏
  */
 export function SkeletonCard() {
   return (
-    <Card>
-      <CardHeader>
-        <Skeleton className="h-6 w-3/4" />
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <Skeleton className="h-4 w-1/2" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-2/3" />
-      </CardContent>
-    </Card>
+    <div className="flex h-full flex-col gap-4 rounded-3xl border border-border/60 bg-muted/70 p-5 dark:bg-card/70">
+      <div className="aspect-video animate-pulse rounded-2xl bg-muted" />
+      <div className="space-y-3">
+        <div className="h-5 w-3/4 animate-pulse rounded-md bg-muted" />
+        <div className="h-3 w-1/2 animate-pulse rounded-md bg-muted" />
+        <div className="h-3 w-full animate-pulse rounded-md bg-muted" />
+        <div className="h-3 w-2/3 animate-pulse rounded-md bg-muted" />
+      </div>
+    </div>
   );
 }

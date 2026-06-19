@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 
-import { MagneticButton } from "@/components/reactbits/MagneticButton";
+import { RippleButton } from "@/components/reactbits/RippleButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -30,7 +30,7 @@ export function RegisterForm() {
         <Input
           id="username"
           placeholder="yourname"
-          className="h-11 bg-background/50 backdrop-blur-sm"
+          className="h-11 bg-background/50 backdrop-blur-sm dark:bg-background/50"
           {...form.register("username")}
         />
         {form.formState.errors.username && (
@@ -43,7 +43,7 @@ export function RegisterForm() {
           id="email"
           type="email"
           placeholder="name@example.com"
-          className="h-11 bg-background/50 backdrop-blur-sm"
+          className="h-11 bg-background/50 backdrop-blur-sm dark:bg-background/50"
           {...form.register("email")}
         />
         {form.formState.errors.email && (
@@ -56,7 +56,7 @@ export function RegisterForm() {
           id="password"
           type="password"
           placeholder="••••••••"
-          className="h-11 bg-background/50 backdrop-blur-sm"
+          className="h-11 bg-background/50 backdrop-blur-sm dark:bg-background/50"
           {...form.register("password")}
         />
         {form.formState.errors.password && (
@@ -69,7 +69,7 @@ export function RegisterForm() {
           id="confirmPassword"
           type="password"
           placeholder="••••••••"
-          className="h-11 bg-background/50 backdrop-blur-sm"
+          className="h-11 bg-background/50 backdrop-blur-sm dark:bg-background/50"
           {...form.register("confirmPassword")}
         />
         {form.formState.errors.confirmPassword && (
@@ -78,7 +78,7 @@ export function RegisterForm() {
           </p>
         )}
       </div>
-      <MagneticButton
+      <RippleButton
         type="submit"
         disabled={isPending}
         className="w-full h-11 text-base shadow-lg shadow-primary/25"
@@ -91,7 +91,7 @@ export function RegisterForm() {
         ) : (
           "注册"
         )}
-      </MagneticButton>
+      </RippleButton>
     </form>
   );
 }

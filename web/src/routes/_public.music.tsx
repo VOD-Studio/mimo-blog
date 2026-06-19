@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 
 import { BentoGrid } from "@/components/reactbits/BentoGrid";
-import { GradientText } from "@/components/reactbits/GradientText";
 import { ScrollReveal } from "@/components/reactbits/ScrollReveal";
+import { ShinyText } from "@/components/reactbits/ShinyText";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MusicPlayer } from "@/features/music/components/MusicPlayer";
 import { PlaylistPanel } from "@/features/music/components/PlaylistPanel";
@@ -56,7 +56,7 @@ function MusicPage() {
       <ScrollReveal>
         <header className="mb-12 max-w-2xl">
           <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl">
-            <GradientText>音乐</GradientText>
+            <ShinyText>音乐</ShinyText>
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">当前播放的歌单与灵感来源。</p>
         </header>

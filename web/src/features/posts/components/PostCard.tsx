@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Calendar, Eye } from "lucide-react";
 
-import { BentoCard } from "@/components/reactbits/BentoCard";
+import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
 import { Badge } from "@/components/ui/badge";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -19,7 +19,7 @@ interface PostCardProps {
  */
 export function PostCard({ post, featured = false }: PostCardProps) {
   return (
-    <BentoCard className="group p-0" colSpan={featured ? 2 : 1}>
+    <SpotlightCard className="group p-0" colSpan={featured ? 2 : 1}>
       <Link to="/blog/$slug" params={{ slug: post.slug }} className="flex h-full flex-col">
         {post.cover_image ? (
           <div className={cn("overflow-hidden", featured ? "aspect-[2/1]" : "aspect-video")}>
@@ -68,6 +68,6 @@ export function PostCard({ post, featured = false }: PostCardProps) {
           )}
         </div>
       </Link>
-    </BentoCard>
+    </SpotlightCard>
   );
 }

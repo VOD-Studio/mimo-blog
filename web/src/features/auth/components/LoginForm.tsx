@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 
-import { MagneticButton } from "@/components/reactbits/MagneticButton";
+import { RippleButton } from "@/components/reactbits/RippleButton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -26,7 +26,7 @@ export function LoginForm() {
           id="email"
           type="email"
           placeholder="name@example.com"
-          className="h-11 bg-background/50 backdrop-blur-sm"
+          className="h-11 bg-background/50 backdrop-blur-sm dark:bg-background/50"
           {...form.register("email")}
         />
         {form.formState.errors.email && (
@@ -39,14 +39,14 @@ export function LoginForm() {
           id="password"
           type="password"
           placeholder="••••••••"
-          className="h-11 bg-background/50 backdrop-blur-sm"
+          className="h-11 bg-background/50 backdrop-blur-sm dark:bg-background/50"
           {...form.register("password")}
         />
         {form.formState.errors.password && (
           <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
         )}
       </div>
-      <MagneticButton
+      <RippleButton
         type="submit"
         disabled={isPending}
         className="w-full h-11 text-base shadow-lg shadow-primary/25"
@@ -59,7 +59,7 @@ export function LoginForm() {
         ) : (
           "登录"
         )}
-      </MagneticButton>
+      </RippleButton>
     </form>
   );
 }

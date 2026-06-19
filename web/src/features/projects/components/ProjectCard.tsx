@@ -1,7 +1,7 @@
 import { ExternalLink, Github } from "lucide-react";
 
-import { BentoCard } from "@/components/reactbits/BentoCard";
-import { MagneticButton } from "@/components/reactbits/MagneticButton";
+import { RippleButton } from "@/components/reactbits/RippleButton";
+import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +19,7 @@ interface ProjectCardProps {
  */
 export function ProjectCard({ project, featured = false }: ProjectCardProps) {
   return (
-    <BentoCard className="group p-0" colSpan={featured ? 2 : 1}>
+    <SpotlightCard className="group p-0" colSpan={featured ? 2 : 1}>
       <div className="flex h-full flex-col">
         {project.image_url ? (
           <div className={cn("overflow-hidden", featured ? "aspect-[2/1]" : "aspect-video")}>
@@ -55,24 +55,24 @@ export function ProjectCard({ project, featured = false }: ProjectCardProps) {
 
           <div className="mt-5 flex flex-wrap gap-2">
             {project.url && (
-              <MagneticButton variant="outline" size="sm" asChild>
+              <RippleButton variant="outline" size="sm" asChild>
                 <a href={project.url} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="mr-1 size-3.5" />
                   访问
                 </a>
-              </MagneticButton>
+              </RippleButton>
             )}
             {project.github_url && (
-              <MagneticButton variant="ghost" size="sm" asChild>
+              <RippleButton variant="ghost" size="sm" asChild>
                 <a href={project.github_url} target="_blank" rel="noopener noreferrer">
                   <Github className="mr-1 size-3.5" />
                   GitHub
                 </a>
-              </MagneticButton>
+              </RippleButton>
             )}
           </div>
         </div>
       </div>
-    </BentoCard>
+    </SpotlightCard>
   );
 }

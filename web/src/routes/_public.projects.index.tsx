@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
-import { GradientText } from "@/components/reactbits/GradientText";
 import { ScrollReveal } from "@/components/reactbits/ScrollReveal";
+import { ShinyText } from "@/components/reactbits/ShinyText";
 import { SkeletonCardGrid } from "@/components/shared/SkeletonCardGrid";
 import { projectKeys } from "@/features/projects/api/keys";
 import { fetchProjects } from "@/features/projects/api/queries";
@@ -28,7 +28,7 @@ function ProjectsPage() {
       <ScrollReveal>
         <header className="mb-12 max-w-2xl">
           <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl">
-            <GradientText>项目</GradientText>
+            <ShinyText>项目</ShinyText>
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
             精选的一些实践与探索，涵盖 Web 应用、工具与实验性项目。

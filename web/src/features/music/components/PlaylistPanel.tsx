@@ -2,7 +2,7 @@
 
 import { Music } from "lucide-react";
 
-import { BentoCard } from "@/components/reactbits/BentoCard";
+import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
 import { cn } from "@/lib/utils";
 
 import type { Song } from "../types";
@@ -18,7 +18,7 @@ interface PlaylistPanelProps {
  */
 export function PlaylistPanel({ songs, currentIndex, onSelect }: PlaylistPanelProps) {
   return (
-    <BentoCard className="max-h-[520px] overflow-hidden p-0">
+    <SpotlightCard className="max-h-[520px] overflow-hidden p-0">
       <div className="border-b border-border/50 px-5 py-4">
         <h3 className="font-semibold">播放列表</h3>
         <p className="text-xs text-muted-foreground">共 {songs.length} 首</p>
@@ -58,6 +58,6 @@ export function PlaylistPanel({ songs, currentIndex, onSelect }: PlaylistPanelPr
           </li>
         ))}
       </ul>
-    </BentoCard>
+    </SpotlightCard>
   );
 }

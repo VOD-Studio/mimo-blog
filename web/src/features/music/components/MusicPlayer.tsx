@@ -3,8 +3,8 @@
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { BentoCard } from "@/components/reactbits/BentoCard";
-import { MagneticButton } from "@/components/reactbits/MagneticButton";
+import { RippleButton } from "@/components/reactbits/RippleButton";
+import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
 import { cn } from "@/lib/utils";
 
 import type { Song } from "../types";
@@ -45,7 +45,7 @@ export function MusicPlayer({
   const coverUrl = currentSong.cover ?? "https://placehold.co/400x400/1e293b/ffffff?text=Music";
 
   return (
-    <BentoCard className="overflow-hidden p-0" colSpan={2} rowSpan={2}>
+    <SpotlightCard className="overflow-hidden p-0" colSpan={2} rowSpan={2}>
       <div className="grid h-full md:grid-cols-2">
         <div className="relative aspect-square md:aspect-auto">
           <img
@@ -97,20 +97,20 @@ export function MusicPlayer({
             </div>
 
             <div className="flex items-center justify-center gap-4">
-              <MagneticButton variant="outline" size="icon" onClick={onPrevious}>
+              <RippleButton variant="outline" size="icon" onClick={onPrevious}>
                 <SkipBack className="size-5" />
-              </MagneticButton>
-              <MagneticButton size="icon" className="h-14 w-14" onClick={onTogglePlay}>
+              </RippleButton>
+              <RippleButton size="icon" className="h-14 w-14" onClick={onTogglePlay}>
                 {isPlaying ? <Pause className="size-6" /> : <Play className="size-6" />}
-              </MagneticButton>
-              <MagneticButton variant="outline" size="icon" onClick={onNext}>
+              </RippleButton>
+              <RippleButton variant="outline" size="icon" onClick={onNext}>
                 <SkipForward className="size-5" />
-              </MagneticButton>
+              </RippleButton>
             </div>
           </div>
         </div>
       </div>
-    </BentoCard>
+    </SpotlightCard>
   );
 }
 
