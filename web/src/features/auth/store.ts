@@ -25,6 +25,23 @@ const noopStorage: Storage = {
 };
 
 /**
+ * 同步 token 到 api.ts 使用的独立 localStorage key
+ */
+function syncTokensToStorage(accessToken: string | null, refreshToken: string | null) {
+  if (!isClient()) return;
+  if (accessToken) {
+    localStorage.setItem("accessToken", accessToken);
+  } else {
+    localStorage.removeItem("accessToken");
+  }
+  if (refreshToken) {
+    localStorage.setItem("refreshToken", refreshToken);
+  } else {
+    localStorage.removeItem("refreshToken");
+  }
+}
+
+/**
  * 认证状态
  */
 interface AuthState {
@@ -60,26 +77,32 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       isInitialized: false,
-      setAuth: (auth) =>
+      setAuth: (auth) => {
+        syncTokensToStorage(auth.accessToken, auth.refreshToken);
         set({
           user: auth.user,
           accessToken: auth.accessToken,
           refreshToken: auth.refreshToken,
           isInitialized: true,
-        }),
-      setTokens: (auth) =>
+        });
+      },
+      setTokens: (auth) => {
+        syncTokensToStorage(auth.accessToken, auth.refreshToken);
         set({
           accessToken: auth.accessToken,
           refreshToken: auth.refreshToken,
           isInitialized: true,
-        }),
-      clearAuth: () =>
+        });
+      },
+      clearAuth: () => {
+        syncTokensToStorage(null, null);
         set({
           user: null,
           accessToken: null,
           refreshToken: null,
           isInitialized: true,
-        }),
+        });
+      },
       initialize: () => set({ isInitialized: true }),
     }),
     {

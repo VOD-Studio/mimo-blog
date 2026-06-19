@@ -112,9 +112,25 @@ function clearAuth() {
 
 /**
  * 跳转到登录页（仅在客户端）
+ *
+ * 优先使用 TanStack Router 客户端导航，避免整页刷新；
+ * 不可用时回退到 window.location.href。
  */
 function redirectToLogin() {
-  if (isClient()) {
+  if (!isClient()) return;
+
+  // 已在认证页则不再跳转
+  const pathname = window.location.pathname;
+  if (pathname === "/login" || pathname === "/register") return;
+
+  // 尝试通过 TanStack Start 挂载在 window 上的 router 实例做无刷新导航
+  const router = (
+    window as Window & { __TSR_ROUTER__?: { navigate: (opts: { to: string }) => void } }
+  ).__TSR_ROUTER__;
+
+  if (router?.navigate) {
+    router.navigate({ to: "/login" });
+  } else {
     window.location.href = "/login";
   }
 }
@@ -171,7 +187,7 @@ api.interceptors.response.use(
         const refreshToken = getRefreshToken();
         const response = await axios.post<
           ApiResponse<{ access_token: string; refresh_token?: string }>
-        >(`${env.VITE_API_URL}/auth/refresh`, {
+        >(`${env.VITE_API_URL}/api/v1/auth/refresh`, {
           refresh_token: refreshToken,
         });
         const { access_token, refresh_token } = response.data.data;
