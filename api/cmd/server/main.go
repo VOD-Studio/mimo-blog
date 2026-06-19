@@ -21,13 +21,11 @@ import (
 	"blog-api/config"
 	"blog-api/internal/app"
 	authcmd "blog-api/internal/application/auth/command"
-	"blog-api/internal/handler"
+	infraemail "blog-api/internal/infrastructure/email"
 	newmodel "blog-api/internal/infrastructure/persistence/gorm/model"
 	"blog-api/internal/job"
 	"blog-api/internal/middleware"
 	"blog-api/internal/migrate"
-	"blog-api/internal/model"
-	"blog-api/internal/repository/generated"
 	"blog-api/internal/service"
 )
 
@@ -54,18 +52,6 @@ func main() {
 		log.Fatal().Err(err).Msg("数据库连接失败")
 	}
 	defer db.Close()
-	// 配置连接池（生产关键项，避免默认 4 连接成为瓶颈）
-	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
-	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
-	db.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime)
-	if err := db.PingContext(ctx); err != nil {
-		log.Fatal().Err(err).Msg("数据库 ping 失败")
-	}
-	log.Info().
-		Int("max_open_conns", cfg.Database.MaxOpenConns).
-		Int("max_idle_conns", cfg.Database.MaxIdleConns).
-		Str("conn_max_lifetime", cfg.Database.ConnMaxLifetime.String()).
-		Msg("数据库连接成功")
 
 	migrateURL := fmt.Sprintf("pgx5://%s", cfg.Database.DSN()[len("postgres://"):])
 	if err := migrate.RunMigrations("migrations", migrateURL, db); err != nil {
@@ -86,13 +72,8 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("GORM 连接失败")
 	}
-	if err := gormDB.AutoMigrate(&model.File{}, &model.UploadSession{}); err != nil {
-		log.Fatal().Err(err).Msg("GORM 自动迁移失败")
-	}
 
 	// P2: DDD 新 model 的 AutoMigrate（全 GORM AutoMigrate 策略）
-	// 旧表已由 golang-migrate 创建，AutoMigrate 只补充缺失列/表，
-	// 个别约束/索引名不一致属预期（旧表用 _key 后缀，GORM 用 uni_ 前缀），
 	// 记录警告但不致命退出，保证服务能启动。
 	if err := gormDB.AutoMigrate(
 		&newmodel.User{}, &newmodel.Role{}, &newmodel.Permission{}, &newmodel.RolePermission{},
@@ -100,58 +81,47 @@ func main() {
 		&newmodel.Comment{}, &newmodel.CommentReaction{},
 		&newmodel.Announcement{}, &newmodel.Project{},
 		&newmodel.EmojiGroup{}, &newmodel.Emoji{}, &newmodel.Playlist{},
-		&newmodel.File{},
+		&newmodel.MusicSetting{},
+		&newmodel.File{}, &newmodel.UploadSession{},
 	); err != nil {
-		log.Warn().Err(err).Msg("DDD model AutoMigrate 部分失败（旧表约束名不一致，可忽略；新表/列已正常迁移）")
 	}
 
-	// P2.2d: 初始化 role/permission DDD 依赖容器（与旧代码并存）
 	roleContainer, roleCleanup, err := app.InitializeRoleContainer(gormDB)
 	if err != nil {
 		log.Fatal().Err(err).Msg("DDD role 容器初始化失败")
 	}
 	defer roleCleanup()
 
-	queries := generated.New(db)
-
 	// --- 服务层初始化 ---
 
-	// 评论 repository 已迁移至 DDD commentContainer
 
-	emailService := service.NewEmailService(cfg.ResendAPIKey, cfg.EmailFrom)
+	emailSender := infraemail.NewSender(cfg.ResendAPIKey, cfg.EmailFrom)
 
-	// P2.1: 初始化 auth/user DDD 容器（复用旧 EmailService 作为 EmailSender）
-	authContainer, err := app.NewAuthContainer(gormDB, redisClient, cfg, emailService, nil)
+	authContainer, err := app.NewAuthContainer(gormDB, redisClient, cfg, emailSender, nil)
 	if err != nil {
 		log.Fatal().Err(err).Msg("DDD auth 容器初始化失败")
 	}
 
-	// P2.7: 中间件端口适配器
 	// middleware.Auth 已重构为接收 TokenValidator 接口，
-	// 优先使用 DDD JWTService 作为令牌校验源（与旧 AuthService 共享同一密钥对，令牌互通）。
 	tokenValidator := newDDDAuthValidator(authContainer.JWTService)
 
-	// P2.5: announcement + project DDD 容器
 	contentContainer := app.NewContentContainer(gormDB)
 
-	// P2.4: comment DDD 容器
 	commentContainer := app.NewCommentContainer(gormDB)
 
-	// P2.3: post DDD 容器
 	postContainer := app.NewPostContainer(gormDB)
+	settingsContainer := app.NewSettingsContainer(gormDB)
+	tagContainer := app.NewTagContainer(gormDB)
+	githubContainer := app.NewGitHubContainer(settingsContainer.Store)
+	auditContainer := app.NewAuditContainer(gormDB)
+	statsContainer := app.NewStatsContainer(gormDB)
+	userAdminContainer := app.NewUserAdminContainer(gormDB, authcmd.NewBcryptHasher(), auditContainer.Service)
+	commentReactionContainer := app.NewCommentReactionContainer(gormDB)
 
-	// P2.6: emoji/music/upload DDD 容器
 	mediaContainer := app.NewMediaContainer(gormDB, "uploads/emojis", "uploads/tmp", "uploads", "/uploads/")
-	tagService := service.NewTagService(queries)
-	commentReactionService := service.NewCommentReactionService(queries)
-	settingsService := service.NewSettingsService(queries)
-	statsService := service.NewStatsService(queries)
-	userService := service.NewUserService(queries)
-	emojiSeedService := service.NewEmojiSeedService(queries, "uploads/emojis", cfg.BilibiliCookie, cfg.BilibiliAPIType)
-	auditService := service.NewAuditService(queries)
+	emojiSeedService := service.NewEmojiSeedService(gormDB, "uploads/emojis", cfg.BilibiliCookie, cfg.BilibiliAPIType)
 
 	// 表情种子数据初始化（幂等）
-	// P2.7: 改用 GORM 计数，移除对 sqlc 的依赖
 	var emojiGroupCount int64
 	if err := gormDB.Model(&newmodel.EmojiGroup{}).Count(&emojiGroupCount).Error; err != nil {
 		log.Error().Err(err).Msg("检查表情分组数量失败")
@@ -167,7 +137,7 @@ func main() {
 	cleanupJob := job.NewCleanupJob(gormDB, "uploads/tmp")
 	go cleanupJob.Start(ctx)
 
-	// --- 超级管理员初始化（P2.7: 改用 DDD 用例，幂等）---
+	// --- 超级管理员初始化---
 	if cfg.SuperAdmin.Enabled {
 		if err := authContainer.EnsureSuperAdmin.Handle(ctx, authcmd.EnsureSuperAdminInput{
 			Email:    cfg.SuperAdmin.Email,
@@ -179,15 +149,7 @@ func main() {
 	}
 
 	// --- 处理器初始化 ---
-	// P2.7: auth/role/permission/announcement 已切换 DDD handler，旧 handler/service 不再初始化
-	tagHandler := handler.NewTagHandler(tagService)
-	adminHandler := handler.NewAdminHandler(statsService)
-	settingsHandler := handler.NewSettingsHandler(settingsService)
-	githubService := service.NewGitHubService(settingsService)
-	githubHandler := handler.NewGitHubHandler(githubService)
-	userMgmtHandler := handler.NewUserManagementHandler(userService, auditService)
-	commentReactionHandler := handler.NewCommentReactionHandler(commentReactionService)
-	auditHandler := handler.NewAuditHandler(auditService)
+
 
 	// --- 路由注册 ---
 
@@ -208,21 +170,19 @@ func main() {
 	// =====================================================
 	// API v1
 	// =====================================================
-	// DDD media handler 在 v1 闭包和 shadow 区共用，需提前声明
 	mediaH := mediaContainer.MediaHandler
 
 	r.Route("/api/v1", func(v1 chi.Router) {
 
 		// 公开站点设置
-		v1.Get("/settings", settingsHandler.GetPublicSettings) // 获取公开站点配置
+		v1.Get("/settings", settingsContainer.SettingsHandler.GetPublicSettings) // 获取公开站点配置
 
 		// GitHub 数据（公开，Token 在后端管理）
-		v1.Get("/github/contributions", githubHandler.GetContributions) // GitHub 贡献数据
-		v1.Get("/github/repos", githubHandler.GetRepos)                 // GitHub 仓库数据
+		v1.Get("/github/contributions", githubContainer.GitHubHandler.GetContributions) // GitHub 贡献数据
+		v1.Get("/github/repos", githubContainer.GitHubHandler.GetRepos)                 // GitHub 仓库数据
 
-		// 认证（P2.7: DDD auth handler 已切换为官方路径）
+		// 认证
 		authH := authContainer.AuthHandler
-		// P2.8: DDD content handler（announcement + project）
 		contentH := contentContainer.ContentHandler
 		v1.Route("/auth", func(r chi.Router) {
 			r.Post("/register", authH.Register)        // 用户注册
@@ -249,23 +209,34 @@ func main() {
 			r.Post("/{id}/view", postH.IncrementView)    // 增加浏览次数
 		})
 
-		// 标签
+		// 标签（DDD tagContainer）
+		tagH := tagContainer.TagHandler
 		v1.Route("/tags", func(r chi.Router) {
-			r.Get("/", tagHandler.List) // 标签列表
+			r.Get("/", tagH.List) // 标签列表（公开）
 
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.Auth(tokenValidator))
-				r.Post("/", tagHandler.Create)       // 创建标签
-				r.Delete("/{id}", tagHandler.Delete) // 删除标签
+				r.Use(middleware.AdminRequired)
+				r.Post("/", tagH.Create)       // 创建标签
+				r.Delete("/{id}", tagH.Delete) // 删除标签
 			})
 		})
 
-		// 评论（DDD commentH；评论反应仍用旧 commentReactionHandler）
+		// 评论（DDD commentH；评论反应 DDD commentReactionContainer）
 		commentH := commentContainer.CommentHandler
 		v1.Route("/posts/{postId}/comments", func(r chi.Router) {
 			r.Get("/", commentH.ListByPost)                                          // 获取文章已审核评论
 			r.With(middleware.CommentRateLimit(redisClient)).Post("/", commentH.Create) // 提交评论（限流）
 		})
+
+		// 评论反应（DDD commentReactionContainer）
+		crH := commentReactionContainer.CommentReactionHandler
+		v1.Route("/comments/{comment_id}/reactions", func(r chi.Router) {
+			r.Get("/", crH.GetCommentReactions)                                         // 获取评论反应
+			r.With(middleware.CommentRateLimit(redisClient)).Post("/", crH.AddReaction) // 添加反应（限流）
+			r.Delete("/{emoji_id}", crH.RemoveReaction)                                 // 删除反应
+		})
+		v1.Post("/comments/reactions/batch", crH.GetReactionsBatch) // 批量获取评论反应
 
 		// 评论审核/删除（DDD commentH，admin 权限）
 		v1.Route("/comments/{id}", func(r chi.Router) {
@@ -277,16 +248,6 @@ func main() {
 				r.Delete("/", commentH.Delete)        // 删除评论
 			})
 		})
-
-		// 评论反应（公开接口）
-		v1.Route("/comments/{comment_id}/reactions", func(r chi.Router) {
-			r.Get("/", commentReactionHandler.GetCommentReactions)                                         // 获取评论反应
-			r.With(middleware.CommentRateLimit(redisClient)).Post("/", commentReactionHandler.AddReaction) // 添加反应（限流）
-			r.Delete("/{emoji_id}", commentReactionHandler.RemoveReaction)                                 // 删除反应
-		})
-
-		// 批量获取评论反应
-		v1.Post("/comments/reactions/batch", commentReactionHandler.GetReactionsBatch)
 
 		// 媒体（DDD mediaH）
 		v1.Route("/media", func(r chi.Router) {
@@ -323,7 +284,7 @@ func main() {
 			r.Get("/settings", mediaH.GetMusicSettings)        // 获取播放器设置
 		})
 
-		// 项目（公开，P2.8: DDD content handler）
+		// 项目（公开）
 		v1.Route("/projects", func(r chi.Router) {
 			r.Get("/", contentH.ListProjects)  // 项目列表
 			r.Get("/{id}", contentH.GetProject) // 项目详情
@@ -335,7 +296,7 @@ func main() {
 			r.Get("/groups/{name}", mediaH.GetEmojiGroupByName)  // 按名称获取指定表情分组
 		})
 
-		// 公告（公开，P2.7: DDD content handler）
+		// 公告
 		v1.Get("/announcements", contentH.ListActiveAnnouncements) // 获取生效公告列表
 
 		// =====================================================
@@ -345,26 +306,26 @@ func main() {
 			r.Use(middleware.Auth(tokenValidator))
 			r.Use(middleware.AdminRequired)
 
-			// P2.7: DDD role/permission handler 切换为官方路径
 			roleH := roleContainer.RoleHandler
 
-			r.Get("/stats", adminHandler.GetDashboardStats)   // 仪表盘总览统计
-			r.Get("/stats/views", adminHandler.GetViewTrends) // 浏览量趋势
+			r.Get("/stats", statsContainer.StatsHandler.GetDashboardStats)   // 仪表盘总览统计
+			r.Get("/stats/views", statsContainer.StatsHandler.GetViewTrends) // 浏览量趋势
 
-			r.Get("/settings", settingsHandler.GetSettings)    // 获取站点设置
-			r.Put("/settings", settingsHandler.UpdateSettings) // 更新站点设置
+			r.Get("/settings", settingsContainer.SettingsHandler.GetSettings)    // 获取站点设置
+			r.Put("/settings", settingsContainer.SettingsHandler.UpdateSettings) // 更新站点设置
 
-			r.Get("/users", userMgmtHandler.ListUsers)                           // 用户列表
-			r.Get("/users/{id}", userMgmtHandler.GetUserDetail)                  // 用户详情
-			r.Post("/users", userMgmtHandler.CreateUser)                         // 创建用户
-			r.Put("/users/{id}", userMgmtHandler.UpdateUser)                     // 编辑用户
-			r.Delete("/users/{id}", userMgmtHandler.DeleteUser)                  // 删除用户
-			r.Patch("/users/{id}/role", userMgmtHandler.UpdateUserRole)          // 修改用户角色
-			r.Patch("/users/{id}/status", userMgmtHandler.UpdateUserStatus)      // 启用/禁用用户
-			r.Post("/users/batch-status", userMgmtHandler.BatchUpdateUserStatus) // 批量启用/禁用用户
-			r.Post("/users/batch-role", userMgmtHandler.BatchUpdateUserRole)     // 批量修改用户角色
+			// 用户管理（DDD userAdminContainer）
+			r.Get("/users", userAdminContainer.UserAdminHandler.ListUsers)                           // 用户列表
+			r.Get("/users/{id}", userAdminContainer.UserAdminHandler.GetUserDetail)                  // 用户详情
+			r.Post("/users", userAdminContainer.UserAdminHandler.CreateUser)                         // 创建用户
+			r.Put("/users/{id}", userAdminContainer.UserAdminHandler.UpdateUser)                     // 编辑用户
+			r.Delete("/users/{id}", userAdminContainer.UserAdminHandler.DeleteUser)                  // 删除用户
+			r.Patch("/users/{id}/role", userAdminContainer.UserAdminHandler.UpdateUserRole)          // 修改用户角色
+			r.Patch("/users/{id}/status", userAdminContainer.UserAdminHandler.UpdateUserStatus)      // 启用/禁用用户
+			r.Post("/users/batch-status", userAdminContainer.UserAdminHandler.BatchUpdateStatus) // 批量启用/禁用用户
+			r.Post("/users/batch-role", userAdminContainer.UserAdminHandler.BatchUpdateRole)     // 批量修改用户角色
 
-			// 权限管理（P2.7: DDD role handler）
+			// 权限管理
 			r.Get("/permissions", roleH.ListPermissions) // 获取所有权限定义
 
 			// 权限 CRUD（仅限超级管理员）
@@ -375,7 +336,7 @@ func main() {
 				r.Delete("/permissions/{code}", roleH.DeletePermission) // 删除权限
 			})
 
-			// 角色管理（P2.7: DDD role handler，移除 role:manage 旧权限点检查）
+			// 角色管理
 			r.Get("/roles", roleH.ListRoles)                           // 角色列表
 			r.Get("/roles/{id}", roleH.GetRole)                        // 角色详情（含权限）
 			r.Post("/roles", roleH.CreateRole)                         // 创建角色
@@ -384,10 +345,10 @@ func main() {
 			r.Patch("/roles/{id}/permissions", roleH.UpdateRolePermissions) // 设置角色权限
 
 			// 操作日志
-			r.Get("/logs", auditHandler.ListLogs)                 // 操作日志列表
-			r.Get("/logs/user/{id}", auditHandler.ListLogsByUser) // 用户操作日志
+			r.Get("/logs", auditContainer.AuditHandler.ListLogs)                 // 操作日志列表
+			r.Get("/logs/user/{id}", auditContainer.AuditHandler.ListLogsByUser) // 用户操作日志
 
-			// 公告管理（P2.7: DDD content handler）
+			// 公告管理
 			r.Get("/announcements", contentH.ListAnnouncements)       // 公告列表
 			r.Get("/announcements/{id}", contentH.GetAnnouncement)    // 公告详情
 			r.Post("/announcements", contentH.CreateAnnouncement)     // 创建公告
@@ -457,10 +418,6 @@ func main() {
 	})
 
 	// ============================================================
-	// P2.7/P2.8: 已迁移至官方路径的 DDD 模块
-	//   - P2.7: auth/role/permission/announcement
-	//   - P2.8: project/comment/post/emoji/upload/media/music
-	// 所有模块已迁移至官方路径，shadow 路由全部删除
 	// ============================================================
 
 	// 静态文件服务（无版本前缀）
