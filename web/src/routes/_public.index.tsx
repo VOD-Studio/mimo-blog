@@ -8,6 +8,7 @@ import { RippleButton } from "@/components/reactbits/RippleButton";
 import { ShinyText } from "@/components/reactbits/ShinyText";
 import { SpotlightCard } from "@/components/reactbits/SpotlightCard";
 import { StatCard } from "@/components/reactbits/StatCard";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { musicKeys } from "@/features/music/api/keys";
 import { fetchActivePlaylists } from "@/features/music/api/queries";
@@ -120,39 +121,49 @@ function HomePage() {
             </RippleButton>
           </div>
           <div className="divide-y divide-border/50">
-            {isPostsLoading
-              ? Array.from({ length: 3 }).map((_, index) => (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
-                  <div key={index} className="flex items-center gap-4 p-5">
-                    <Skeleton className="h-14 w-14 rounded-2xl" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-4 w-2/3" />
-                      <Skeleton className="h-3 w-1/3" />
-                    </div>
+            {isPostsLoading ? (
+              Array.from({ length: 3 }).map((_, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
+                <div key={index} className="flex items-center gap-4 p-5">
+                  <Skeleton className="h-14 w-14 rounded-2xl" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-1/3" />
                   </div>
-                ))
-              : recentPosts.map((post) => (
-                  <Link
-                    key={post.id}
-                    to="/blog/$slug"
-                    params={{ slug: post.slug }}
-                    className="group flex items-center gap-4 p-5 transition-colors hover:bg-muted/30"
-                  >
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-muted text-lg font-bold text-muted-foreground">
-                      {post.title.slice(0, 1)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate font-medium group-hover:text-primary">
-                        {post.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {post.published_at ? formatDate(post.published_at) : "未发布"} ·{" "}
-                        {post.view_count} 阅读
-                      </p>
-                    </div>
-                    <ArrowRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                  </Link>
-                ))}
+                </div>
+              ))
+            ) : recentPosts.length > 0 ? (
+              recentPosts.map((post) => (
+                <Link
+                  key={post.id}
+                  to="/blog/$slug"
+                  params={{ slug: post.slug }}
+                  className="group flex items-center gap-4 p-5 transition-colors hover:bg-muted/30"
+                >
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-muted text-lg font-bold text-muted-foreground">
+                    {post.title.slice(0, 1)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-medium group-hover:text-primary">{post.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {post.published_at ? formatDate(post.published_at) : "未发布"} ·{" "}
+                      {post.view_count} 阅读
+                    </p>
+                  </div>
+                  <ArrowRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+              ))
+            ) : (
+              <div className="p-5">
+                <EmptyState
+                  variant="compact"
+                  icon={BookOpen}
+                  title="暂无文章"
+                  description="作者正在创作中"
+                  action={{ label: "查看全部", href: "/blog" }}
+                />
+              </div>
+            )}
           </div>
         </SpotlightCard>
 
@@ -200,29 +211,41 @@ function HomePage() {
         </SpotlightCard>
 
         {/* Projects */}
-        {isProjectsLoading
-          ? Array.from({ length: 2 }).map((_, index) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
-              <SpotlightCard key={index}>
-                <Skeleton className="h-6 w-1/2" />
-                <Skeleton className="mt-3 h-16 w-full" />
-                <Skeleton className="mt-4 h-8 w-2/3" />
-              </SpotlightCard>
-            ))
-          : recentProjects.map((project) => (
-              <SpotlightCard key={project.id}>
-                <div className="flex items-center gap-2">
-                  <FolderGit2 className="size-5 text-primary" />
-                  <h2 className="font-semibold">{project.title}</h2>
-                </div>
-                <p className="mt-2 line-clamp-3 flex-1 text-sm text-muted-foreground">
-                  {project.description}
-                </p>
-                <RippleButton variant="ghost" size="sm" className="mt-4 self-start" asChild>
-                  <Link to="/projects">查看项目</Link>
-                </RippleButton>
-              </SpotlightCard>
-            ))}
+        {isProjectsLoading ? (
+          Array.from({ length: 2 }).map((_, index) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton placeholders
+            <SpotlightCard key={index}>
+              <Skeleton className="h-6 w-1/2" />
+              <Skeleton className="mt-3 h-16 w-full" />
+              <Skeleton className="mt-4 h-8 w-2/3" />
+            </SpotlightCard>
+          ))
+        ) : recentProjects.length > 0 ? (
+          recentProjects.map((project) => (
+            <SpotlightCard key={project.id}>
+              <div className="flex items-center gap-2">
+                <FolderGit2 className="size-5 text-primary" />
+                <h2 className="font-semibold">{project.title}</h2>
+              </div>
+              <p className="mt-2 line-clamp-3 flex-1 text-sm text-muted-foreground">
+                {project.description}
+              </p>
+              <RippleButton variant="ghost" size="sm" className="mt-4 self-start" asChild>
+                <Link to="/projects">查看项目</Link>
+              </RippleButton>
+            </SpotlightCard>
+          ))
+        ) : (
+          <SpotlightCard>
+            <EmptyState
+              variant="compact"
+              icon={FolderGit2}
+              title="暂无项目"
+              description="作者正在准备中"
+              action={{ label: "查看全部", href: "/projects" }}
+            />
+          </SpotlightCard>
+        )}
 
         {/* About / Contact */}
         <SpotlightCard className="items-center justify-center text-center">

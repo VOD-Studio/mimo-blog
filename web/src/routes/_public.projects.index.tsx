@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { FolderGit2 } from "lucide-react";
 
 import { ScrollReveal } from "@/components/reactbits/ScrollReveal";
 import { ShinyText } from "@/components/reactbits/ShinyText";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { SkeletonCardGrid } from "@/components/shared/SkeletonCardGrid";
 import { projectKeys } from "@/features/projects/api/keys";
 import { fetchProjects } from "@/features/projects/api/queries";
@@ -47,9 +49,11 @@ function ProjectsPage() {
           ))}
         </div>
       ) : (
-        <div className="rounded-3xl border border-dashed bg-muted/30 p-16 text-center text-muted-foreground">
-          暂无项目
-        </div>
+        <EmptyState
+          icon={FolderGit2}
+          title="暂无项目"
+          description="作者正在准备新的项目展示，敬请期待"
+        />
       )}
     </div>
   );

@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Headphones } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { BentoGrid } from "@/components/reactbits/BentoGrid";
 import { ScrollReveal } from "@/components/reactbits/ScrollReveal";
 import { ShinyText } from "@/components/reactbits/ShinyText";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MusicPlayer } from "@/features/music/components/MusicPlayer";
 import { PlaylistPanel } from "@/features/music/components/PlaylistPanel";
@@ -82,9 +84,11 @@ function MusicPage() {
           <PlaylistPanel songs={songs} currentIndex={currentIndex} onSelect={handleSelect} />
         </BentoGrid>
       ) : (
-        <div className="rounded-3xl border border-dashed bg-muted/30 p-16 text-center text-muted-foreground">
-          <p>暂无启用歌单，请在后台导入并启用歌单。</p>
-        </div>
+        <EmptyState
+          icon={Headphones}
+          title="暂无启用歌单"
+          description="作者还没准备好音乐列表，稍后再来听听"
+        />
       )}
     </div>
   );

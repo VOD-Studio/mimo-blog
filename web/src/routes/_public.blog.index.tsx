@@ -2,12 +2,13 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { BookOpen, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BentoGrid } from "@/components/reactbits/BentoGrid";
 import { RippleButton } from "@/components/reactbits/RippleButton";
 import { ScrollReveal } from "@/components/reactbits/ScrollReveal";
 import { ShinyText } from "@/components/reactbits/ShinyText";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { SkeletonCardGrid } from "@/components/shared/SkeletonCardGrid";
 import { Input } from "@/components/ui/input";
 import { fetchPosts } from "@/features/posts/api/queries";
@@ -81,19 +82,15 @@ function RouteComponent() {
             ))}
           </BentoGrid>
         ) : (
-          <ScrollReveal className="mt-16 text-center">
-            <div className="mx-auto max-w-md rounded-3xl border border-border/60 bg-muted/70 p-8 dark:bg-card/70">
-              <p className="text-lg font-medium">暂无文章</p>
-              <p className="mt-2 text-muted-foreground">
-                {search.trim() ? "没有匹配的文章，换个关键词试试" : "稍后再来看看，作者正在创作中"}
-              </p>
-              {search.trim() && (
-                <RippleButton variant="outline" className="mt-4" onClick={() => setSearch("")}>
-                  清除搜索
-                </RippleButton>
-              )}
-            </div>
-          </ScrollReveal>
+          <EmptyState
+            className="mt-8"
+            icon={BookOpen}
+            title={search.trim() ? "未找到匹配文章" : "暂无文章"}
+            description={
+              search.trim() ? "换个关键词试试，或者清除搜索条件" : "稍后再来看看，作者正在创作中"
+            }
+            action={search.trim() ? { label: "清除搜索", onClick: () => setSearch("") } : undefined}
+          />
         )}
       </div>
     </div>
