@@ -5,7 +5,7 @@ export const Route = createFileRoute("/_public/about")({
 });
 
 /**
- * 关于页占位
+ * 关于页
  */
 function AboutPage() {
   return (
