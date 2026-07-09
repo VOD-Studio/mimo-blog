@@ -1,11 +1,11 @@
 import { useContributions, useRepos } from "@features/github/api/queries";
 import { usePosts } from "@features/posts/api/queries";
 import { useSettings } from "@features/settings/api/queries";
+import { usePrefersReducedMotion } from "@shared/lib/hooks/use-media-query";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef } from "react";
 import LogoLoop from "./LogoLoop";
-import { usePrefersReducedMotion } from "@shared/lib/hooks/use-media-query";
 
 type Pill = {
     label: string;
