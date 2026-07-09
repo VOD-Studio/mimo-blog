@@ -1,54 +1,40 @@
-import AnnouncementGrid from "@features/admin-announcements/ui/AnnouncementGrid";
 import { githubKeys } from "@features/github/api/keys";
 import { fetchContributions, fetchRepos } from "@features/github/api/queries";
-import Contributions from "@features/github/ui/Contributions";
-import RepoList from "@features/github/ui/RepoList";
 import { postKeys } from "@features/posts/api/keys";
 import { fetchPosts } from "@features/posts/api/queries";
-import PostList from "@features/posts/ui/PostList";
 import { settingsKeys } from "@features/settings/api/keys";
-import { fetchAnnouncements } from "@features/settings/api/queries";
+import { fetchAnnouncements, fetchSettings } from "@features/settings/api/queries";
 import { createFileRoute } from "@tanstack/react-router";
-import LandingHero from "@widgets/LandingHero";
+import { DataLayerScene, DisplayScene, HeroScene, TickerScene } from "@widgets/HomeScenes";
 
+/**
+ * 首页 — 滚动叙事
+ *
+ * 结构：取景器 Hero → 跑马灯 Ticker → 站点数据网格 → 展示层 pin 叙事。
+ * 各场景自包含数据获取与动画，首页只负责组合与 SSR 预取。
+ */
 function HomePage() {
     return (
-        <div className="flex flex-col">
-            <LandingHero />
-            <section className="container mx-auto flex flex-col gap-32 bg-background px-6 py-32">
-                <div>
-                    <h2 className="mb-12 text-3xl font-bold tracking-tight">公告</h2>
-                    <AnnouncementGrid />
-                </div>
-
-                <div>
-                    <h2 className="mb-12 text-3xl font-bold tracking-tight">最新文章</h2>
-                    <PostList />
-                </div>
-
-                <div>
-                    <h2 className="mb-12 text-3xl font-bold tracking-tight">开源贡献</h2>
-                    <Contributions />
-                </div>
-
-                <div>
-                    <h2 className="mb-12 text-3xl font-bold tracking-tight">开源项目</h2>
-                    <RepoList />
-                </div>
-            </section>
+        <div className="home-page flex flex-col">
+            <HeroScene />
+            <TickerScene />
+            <DataLayerScene />
+            <DisplayScene />
         </div>
     );
 }
 
 export const Route = createFileRoute("/")({
     loader: async ({ context }) => {
-        await context.queryClient
+        context.queryClient
+            .ensureQueryData({ queryKey: settingsKeys.public(), queryFn: fetchSettings })
+            .catch(() => {});
+        context.queryClient
             .ensureQueryData({
                 queryKey: postKeys.list({}),
                 queryFn: () => fetchPosts({}),
             })
             .catch(() => {});
-
         context.queryClient
             .ensureQueryData({
                 queryKey: settingsKeys.announcements(),
