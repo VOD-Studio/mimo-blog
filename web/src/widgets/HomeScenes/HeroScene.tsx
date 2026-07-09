@@ -1,7 +1,8 @@
 import { useSettings } from "@features/settings/api/queries";
+import { usePrefersReducedMotion } from "@shared/lib/hooks/use-media-query";
 import { gsap } from "gsap";
 import { useEffect, useRef } from "react";
-import { usePrefersReducedMotion } from "@shared/lib/hooks/use-media-query";
+import "./home-scenes.css";
 
 /**
  * HeroScene — 首页取景器首屏
