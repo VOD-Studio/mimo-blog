@@ -5,7 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef } from "react";
 import LogoLoop from "./LogoLoop";
-import { usePrefersReducedMotion } from "./useMediaQuery";
+import { usePrefersReducedMotion } from "@shared/lib/hooks/use-media-query";
 
 type Pill = {
     label: string;

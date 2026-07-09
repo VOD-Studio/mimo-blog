@@ -1,7 +1,7 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect, useRef } from "react";
-import { useIsDesktop, usePrefersReducedMotion } from "./useMediaQuery";
+import { useIsDesktop, usePrefersReducedMotion } from "@shared/lib/hooks/use-media-query";
 
 // ===== 展示层阶段时长（秒）=====
 const PHASE1_DURATION = 1.2; // 垂直线延展

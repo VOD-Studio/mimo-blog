@@ -7,7 +7,7 @@ const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
  * useMediaQuery — SSR 安全的媒体查询 hook
  *
  * 首屏返回 false（与桌面/非降级态一致），避免水合不匹配；
- * 水合后按 matchMedia 实际值更新。首页滚动叙事的降级判断统一走这里。
+ * 水合后按 matchMedia 实际值更新。
  */
 export function useMediaQuery(query: string): boolean {
     return useSyncExternalStore(
@@ -21,7 +21,7 @@ export function useMediaQuery(query: string): boolean {
     );
 }
 
-/** 是否桌面端（>768px）—— 滚动叙事仅桌面端启用 */
+/** 是否桌面端（>768px） */
 export function useIsDesktop(): boolean {
     return useMediaQuery(DESKTOP_QUERY);
 }
