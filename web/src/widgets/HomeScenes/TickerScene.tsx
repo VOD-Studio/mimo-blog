@@ -38,7 +38,7 @@ export default function TickerScene() {
             <div className="overflow-hidden">
                 <div
                     ref={trackRef}
-                    className="ticker-marquee flex w-max items-center gap-8 font-mono text-sm font-medium tracking-wider text-muted-foreground"
+                    className="flex w-max items-center gap-8 font-mono text-sm font-medium tracking-wider text-muted-foreground motion-reduce:animate-none!"
                     style={{ animation: "ticker-scroll 30s linear infinite" }}
                 >
                     {Array.from({ length: 8 }).map((_, i) => (

@@ -2205,12 +2205,6 @@
    prefers-reduced-motion：首页场景动画降级
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
-  /* Ticker 跑马灯静止展示 */
-  .ticker-marquee {
-    /* biome-ignore lint/complexity/noImportantStyles: 无障碍要求强制禁用动画 */
-    animation: none !important;
-  }
-
   /* LogoLoop 轨道静止 */
   .logo-loop__track {
     /* biome-ignore lint/complexity/noImportantStyles: 无障碍要求强制禁用动画 */
