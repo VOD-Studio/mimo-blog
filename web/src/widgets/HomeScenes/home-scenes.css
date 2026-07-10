@@ -1718,6 +1718,19 @@
   overflow-y: visible;
   padding-block: 0.9rem;
   border-radius: calc(var(--data-card-radius) - 0.25rem);
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.logo-loop__viewport.is-dragging {
+  cursor: grabbing;
+}
+
+.logo-loop__track.is-paused {
+  /* biome-ignore lint/complexity/noImportantStyles: 必须通过 JS 覆盖 inline animationPlayState */
+  animation-play-state: paused !important;
 }
 
 .logo-loop--fade .logo-loop__viewport {
