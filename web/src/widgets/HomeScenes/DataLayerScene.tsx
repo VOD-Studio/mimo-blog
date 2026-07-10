@@ -4,8 +4,9 @@ import { useSettings } from "@features/settings/api/queries";
 import { usePrefersReducedMotion } from "@shared/lib/hooks/use-media-query";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Atom, Code2, Container, Database, GitBranch, Mail, Palette, Rss } from "lucide-react";
 import { useEffect, useRef } from "react";
-import LogoLoop from "./LogoLoop";
+import LogoLoop, { type LogoLoopItem } from "./LogoLoop";
 
 type Pill = {
     label: string;
@@ -547,27 +548,70 @@ function DataMetricCard({
 }
 
 /** 从 github 用户名派生社交链接项 */
-function buildSocialItems(githubUsername?: string) {
-    const items: Array<{ name: string; href?: string }> = [];
+function buildSocialItems(githubUsername?: string): LogoLoopItem[] {
+    const items: LogoLoopItem[] = [];
     if (githubUsername) {
-        items.push({ name: "GitHub", href: `https://github.com/${githubUsername}` });
+        items.push({
+            name: "GitHub",
+            href: `https://github.com/${githubUsername}`,
+            icon: <GitBranch />,
+        });
     }
     items.push(
-        { name: "Email", href: "mailto:nobody@example.com" },
-        { name: "RSS", href: "/rss.xml" },
+        { name: "Email", href: "mailto:nobody@example.com", icon: <Mail /> },
+        { name: "RSS", href: "/rss.xml", icon: <Rss /> },
     );
     return items;
 }
 
 /** 从 tech_stack 解析技能项（逗号/顿号分隔），无则占位 */
-function buildSkillItems(techStack?: string) {
-    if (!techStack)
-        return ["React", "Go", "PostgreSQL", "Redis", "Tailwind", "TypeScript"].map((n) => ({
-            name: n,
-        }));
-    return techStack
-        .split(/[,、·/]/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map((s) => ({ name: s }));
+function buildSkillItems(techStack?: string): LogoLoopItem[] {
+    const names = techStack
+        ? techStack
+              .split(/[,、·/]/)
+              .map((s) => s.trim())
+              .filter(Boolean)
+        : ["React", "Go", "PostgreSQL", "Redis", "Tailwind", "TypeScript"];
+    return names.map((name) => ({ name, icon: skillIcon(name) }));
+}
+
+/** 技能名到通用 Lucide 图标的简单映射 */
+function skillIcon(name: string) {
+    const lower = name.toLowerCase();
+    if (
+        lower.includes("react") ||
+        lower.includes("vue") ||
+        lower.includes("angular") ||
+        lower.includes("svelte")
+    ) {
+        return <Atom />;
+    }
+    if (
+        lower.includes("css") ||
+        lower.includes("tailwind") ||
+        lower.includes("sass") ||
+        lower.includes("less") ||
+        lower.includes("style")
+    ) {
+        return <Palette />;
+    }
+    if (
+        lower.includes("postgres") ||
+        lower.includes("mysql") ||
+        lower.includes("mongo") ||
+        lower.includes("redis") ||
+        lower.includes("sql") ||
+        lower.includes("db")
+    ) {
+        return <Database />;
+    }
+    if (
+        lower.includes("docker") ||
+        lower.includes("k8s") ||
+        lower.includes("kubernetes") ||
+        lower.includes("nginx")
+    ) {
+        return <Container />;
+    }
+    return <Code2 />;
 }

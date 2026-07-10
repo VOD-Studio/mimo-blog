@@ -1699,6 +1699,8 @@
 }
 
 .logo-loop {
+  --logo-loop-gap: 1.1rem;
+  --logo-loop-logo-height: 1.75rem;
   position: relative;
   width: 100%;
   max-width: 100%;
@@ -1742,15 +1744,12 @@
   gap: var(--logo-loop-gap);
   margin: 0;
   padding: 0;
-  padding-inline-end: var(--logo-loop-gap);
   list-style: none;
   box-sizing: border-box;
 }
 
 .logo-loop__sequence--vertical {
   flex-direction: column;
-  padding-inline-end: 0;
-  padding-block-end: var(--logo-loop-gap);
 }
 
 .logo-loop__item {
