@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import * as SimpleIcons from "simple-icons";
 
 export interface LogoLoopItem {
     /** 显示名 / 标签 */
@@ -7,6 +8,8 @@ export interface LogoLoopItem {
     href?: string;
     /** 自定义图标（可选，无则显示首字母） */
     icon?: React.ReactNode;
+    /** simple-icons slug（可选，优先于 icon / 首字母） */
+    iconSlug?: string;
 }
 
 interface LogoLoopProps {
@@ -102,7 +105,19 @@ export default function LogoLoop({
                 >
                     <ul ref={sequenceRef} className="logo-loop__sequence">
                         {loop.map((item, i) => {
-                            const iconNode = item.icon ? (
+                            const iconKey = item.iconSlug ? `si${item.iconSlug}` : undefined;
+                            const simple = iconKey
+                                ? (SimpleIcons as Record<string, { svg: string } | undefined>)[
+                                      iconKey
+                                  ]
+                                : undefined;
+                            const iconNode = simple ? (
+                                <span
+                                    className="logo-loop__icon logo-loop__icon--svg"
+                                    // biome-ignore lint/security/noDangerouslySetInnerHtml: simple-icons 为静态本地 SVG 路径
+                                    dangerouslySetInnerHTML={{ __html: simple.svg }}
+                                />
+                            ) : item.icon ? (
                                 <span className="logo-loop__icon">{item.icon}</span>
                             ) : (
                                 <span className="logo-loop__fallback">{item.name.slice(0, 1)}</span>

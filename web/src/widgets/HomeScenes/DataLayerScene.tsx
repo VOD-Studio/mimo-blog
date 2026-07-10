@@ -4,7 +4,6 @@ import { useSettings } from "@features/settings/api/queries";
 import { usePrefersReducedMotion } from "@shared/lib/hooks/use-media-query";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { Atom, Code2, Container, Database, GitBranch, Mail, Palette, Rss } from "lucide-react";
 import { useEffect, useRef } from "react";
 import LogoLoop, { type LogoLoopItem } from "./LogoLoop";
 
@@ -554,12 +553,12 @@ function buildSocialItems(githubUsername?: string): LogoLoopItem[] {
         items.push({
             name: "GitHub",
             href: `https://github.com/${githubUsername}`,
-            icon: <GitBranch />,
+            iconSlug: "Github",
         });
     }
     items.push(
-        { name: "Email", href: "mailto:nobody@example.com", icon: <Mail /> },
-        { name: "RSS", href: "/rss.xml", icon: <Rss /> },
+        { name: "Email", href: "mailto:nobody@example.com", iconSlug: "Gmail" },
+        { name: "RSS", href: "/rss.xml", iconSlug: "Rss" },
     );
     return items;
 }
@@ -571,47 +570,57 @@ function buildSkillItems(techStack?: string): LogoLoopItem[] {
               .split(/[,、·/]/)
               .map((s) => s.trim())
               .filter(Boolean)
-        : ["React", "Go", "PostgreSQL", "Redis", "Tailwind", "TypeScript"];
-    return names.map((name) => ({ name, icon: skillIcon(name) }));
+        : ["React", "Go", "PostgreSQL", "Redis", "Tailwind CSS", "TypeScript"];
+    return names.map((name) => ({ name, iconSlug: skillIconSlug(name) }));
 }
 
-/** 技能名到通用 Lucide 图标的简单映射 */
-function skillIcon(name: string) {
+/** 技能名到 simple-icons slug 的映射 */
+function skillIconSlug(name: string): string | undefined {
     const lower = name.toLowerCase();
-    if (
-        lower.includes("react") ||
-        lower.includes("vue") ||
-        lower.includes("angular") ||
-        lower.includes("svelte")
-    ) {
-        return <Atom />;
+    const exact: Record<string, string> = {
+        react: "React",
+        vue: "Vuedotjs",
+        angular: "Angular",
+        svelte: "Svelte",
+        go: "Go",
+        typescript: "Typescript",
+        javascript: "Javascript",
+        "tailwind css": "Tailwindcss",
+        tailwind: "Tailwindcss",
+        tailwindcss: "Tailwindcss",
+        postgres: "Postgresql",
+        postgresql: "Postgresql",
+        mysql: "Mysql",
+        mongodb: "Mongodb",
+        mongo: "Mongodb",
+        redis: "Redis",
+        docker: "Docker",
+        kubernetes: "Kubernetes",
+        k8s: "Kubernetes",
+        nginx: "Nginx",
+        node: "Nodedotjs",
+        "node.js": "Nodedotjs",
+        nodejs: "Nodedotjs",
+        python: "Python",
+        rust: "Rust",
+        next: "Nextdotjs",
+        "next.js": "Nextdotjs",
+        nextjs: "Nextdotjs",
+        vite: "Vite",
+        webpack: "Webpack",
+        git: "Git",
+        github: "Github",
+        gitlab: "Gitlab",
+        vscode: "Visualstudiocode",
+        "vs code": "Visualstudiocode",
+    };
+    for (const [key, slug] of Object.entries(exact)) {
+        if (lower === key || lower.replace(/\s+/g, "") === key) return slug;
     }
-    if (
-        lower.includes("css") ||
-        lower.includes("tailwind") ||
-        lower.includes("sass") ||
-        lower.includes("less") ||
-        lower.includes("style")
-    ) {
-        return <Palette />;
-    }
-    if (
-        lower.includes("postgres") ||
-        lower.includes("mysql") ||
-        lower.includes("mongo") ||
-        lower.includes("redis") ||
-        lower.includes("sql") ||
-        lower.includes("db")
-    ) {
-        return <Database />;
-    }
-    if (
-        lower.includes("docker") ||
-        lower.includes("k8s") ||
-        lower.includes("kubernetes") ||
-        lower.includes("nginx")
-    ) {
-        return <Container />;
-    }
-    return <Code2 />;
+    if (/react|vue|angular|svelte/.test(lower)) return "React";
+    if (/css|tailwind|sass|less|stylus|style/.test(lower)) return "Css3";
+    if (/postgres|mysql|mongo|redis|sqlite|sql|db|database/.test(lower)) return "Sqlite";
+    if (/docker|kubernetes|k8s|nginx/.test(lower)) return "Docker";
+    if (/node|express|nest|deno|bun/.test(lower)) return "Nodedotjs";
+    return undefined;
 }
