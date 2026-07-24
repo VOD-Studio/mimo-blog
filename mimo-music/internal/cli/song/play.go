@@ -227,6 +227,7 @@ func songMetaOf(song *mmpb.Song, songURL *mmpb.SongURL, level int) tui.SongMeta 
 	if song.Album != nil {
 		meta.Album = song.Album.Name
 		meta.PublishTime = song.Album.PublishTime
+		meta.PicURL = song.Album.PicUrl
 	}
 	return meta
 }

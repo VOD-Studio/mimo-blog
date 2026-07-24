@@ -145,7 +145,7 @@ func testPlayDeps(p *fakePlayer, handoff *tuiHandoff) playDeps {
 				Artists: []*mmpb.Artist{
 					{Name: "Beyond"},
 				},
-				Album:      &mmpb.Album{Name: "乐与怒", PublishTime: "1993-05-14"},
+				Album:      &mmpb.Album{Name: "乐与怒", PublishTime: "1993-05-14", PicUrl: "http://cdn.example.com/cover.jpg"},
 				DurationMs: 323000,
 			}, nil
 		},
@@ -281,6 +281,9 @@ func TestRunPlay_LoadURLAndHandoff(t *testing.T) {
 	if handoff.meta.Name != "海阔天空" || handoff.meta.Artist != "Beyond" ||
 		handoff.meta.Album != "乐与怒" || handoff.meta.PublishTime != "1993-05-14" {
 		t.Errorf("交接元数据不符,got %+v", handoff.meta)
+	}
+	if handoff.meta.PicURL != "http://cdn.example.com/cover.jpg" {
+		t.Errorf("交接封面 URL 不符,got %q", handoff.meta.PicURL)
 	}
 	if handoff.meta.Format != "mp3" || handoff.meta.Bitrate != 320000 ||
 		handoff.meta.URL != "http://cdn.example.com/test.mp3" || handoff.meta.Level != 1 {
