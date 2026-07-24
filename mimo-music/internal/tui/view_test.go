@@ -165,7 +165,7 @@ func TestBar(t *testing.T) {
 		{1, 10000, 5, "─────"},     // 不足一格不画头部
 	}
 	for _, tc := range cases {
-		if got := strip(bar(tc.cur, tc.total, tc.width)); got != tc.want {
+		if got := strip(bar(tc.cur, tc.total, tc.width, newStyleSet(defaultPalette))); got != tc.want {
 			t.Errorf("bar(%d,%d,%d) = %q, want %q", tc.cur, tc.total, tc.width, got, tc.want)
 		}
 	}

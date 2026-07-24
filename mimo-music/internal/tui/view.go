@@ -81,15 +81,15 @@ func (m Model) coverView() string {
 	if len(m.coverLines) > 0 {
 		return strings.Join(m.coverLines, "\n")
 	}
-	return coverPlaceholder(cols, rows)
+	return coverPlaceholder(cols, rows, m.styles.palette.primary.color())
 }
 
 // topBar 顶栏:♪ 标题(左) + 音质徽章(右)。
 func (m Model) topBar() string {
-	title := titleStyle.Render("♪ " + m.title())
+	title := m.styles.title.Render("♪ " + m.title())
 	badge := ""
 	if m.meta.Format != "" {
-		badge = badgeStyle.Render(fmt.Sprintf("%s %dkbps", m.meta.Format, m.meta.Bitrate/1000))
+		badge = m.styles.badge.Render(fmt.Sprintf("%s %dkbps", m.meta.Format, m.meta.Bitrate/1000))
 	}
 	gap := m.width - lipgloss.Width(title) - lipgloss.Width(badge)
 	if gap < 1 {
@@ -107,7 +107,7 @@ func (m Model) progressLine() string {
 	left := fmt.Sprintf(" %s %s ", stateIcon(m.state), fmtClock(m.curMs))
 	right := fmt.Sprintf(" %s", fmtClock(m.totalMs))
 	barW := m.width - lipgloss.Width(left) - lipgloss.Width(right)
-	return left + bar(m.curMs, m.totalMs, barW) + right
+	return left + bar(m.curMs, m.totalMs, barW, m.styles) + right
 }
 
 // overlayLine 浮层行(音量/notice 同通道):音量键弹音量条,notice 弹提示文本。
@@ -120,7 +120,7 @@ func (m Model) overlayLine() string {
 	case overlayVolume:
 		return " " + m.volumeOverlay()
 	case overlayNotice:
-		return " " + noticeStyle.Render(m.notice)
+		return " " + m.styles.notice.Render(m.notice)
 	}
 	return ""
 }
@@ -143,7 +143,7 @@ func (m Model) lyricStage() string {
 		case -1, 1:
 			lines = append(lines, nearStyle.Render(text))
 		default:
-			lines = append(lines, lyricStyle.Render("> "+text))
+			lines = append(lines, m.styles.lyric.Render("> "+text))
 		}
 	}
 	return lipgloss.JoinVertical(lipgloss.Center, lines...)
@@ -151,8 +151,8 @@ func (m Model) lyricStage() string {
 
 // helpPopup 键位帮助(居中 styled popup,文案沿旧 helpLines)。
 func (m Model) helpPopup() string {
-	return popupStyle.Render(lipgloss.JoinVertical(lipgloss.Left,
-		titleStyle.Render("帮助"),
+	return m.styles.popup.Render(lipgloss.JoinVertical(lipgloss.Left,
+		m.styles.title.Render("帮助"),
 		"",
 		" 空格        播放/暂停",
 		" ← / →      快退/快进 10s(Shift 30s)",
@@ -171,8 +171,8 @@ func (m Model) infoPopup() string {
 	if y := yearOf(m.meta.PublishTime); y != "" {
 		album += "(" + y + ")"
 	}
-	return popupStyle.Render(lipgloss.JoinVertical(lipgloss.Left,
-		titleStyle.Render("歌曲详情"),
+	return m.styles.popup.Render(lipgloss.JoinVertical(lipgloss.Left,
+		m.styles.title.Render("歌曲详情"),
 		"",
 		" 艺人  "+m.meta.Artist,
 		" 专辑  "+album,
@@ -220,8 +220,8 @@ func (m Model) volBar(width int) string {
 	filled := vol * width / 100
 	return fmt.Sprintf("%s %s%s %d%%",
 		icon,
-		volFillStyle.Render(strings.Repeat("▓", filled)),
-		volVoidStyle.Render(strings.Repeat("░", width-filled)),
+		lipgloss.NewStyle().Foreground(m.styles.volFill).Render(strings.Repeat("▓", filled)),
+		m.styles.volVoid.Render(strings.Repeat("░", width-filled)),
 		vol)
 }
 
@@ -241,26 +241,35 @@ func stateIcon(s player.State) string {
 	}
 }
 
-// bar 定宽进度条:━ 填充 + ╸ 头部 + ─ 空;total ≤ 0(未知)全空。
-// cur 越界收敛到 [0,total]。填充/头部/空段染默认调色板(T4 改封面取色)。
-func bar(cur, total int64, width int) string {
+// bar 定宽进度条:━ 填充(主→强调渐变) + ╸ 头部(强调色) + ─ 空;
+// total ≤ 0(未知)全空。cur 越界收敛到 [0,total]。
+// 渐变用 styleSet 预计算的 32 档样式,帧循环零插值开销。
+func bar(cur, total int64, width int, ss styleSet) string {
 	if width < 2 {
 		width = 2
 	}
 	if total <= 0 || cur <= 0 {
-		return barVoidStyle.Render(strings.Repeat("─", width))
+		return ss.barVoid.Render(strings.Repeat("─", width))
 	}
 	f := int(cur * int64(width) / total)
 	if f <= 0 {
 		// cur>0 但不足一格(起播瞬间):不画头部,避免负 Repeat。
-		return barVoidStyle.Render(strings.Repeat("─", width))
+		return ss.barVoid.Render(strings.Repeat("─", width))
+	}
+	var sb strings.Builder
+	fill := f - 1
+	if f >= width {
+		fill = width // 全满:整条渐变,无头部
+	}
+	for i := range fill {
+		sb.WriteString(ss.gradient[i*gradientSteps/max(1, width-1)].Render("━"))
 	}
 	if f >= width {
-		return barFillStyle.Render(strings.Repeat("━", width))
+		return sb.String()
 	}
-	return barFillStyle.Render(strings.Repeat("━", f-1)) +
-		barHeadStyle.Render("╸") +
-		barVoidStyle.Render(strings.Repeat("─", width-f))
+	sb.WriteString(ss.barHead.Render("╸"))
+	sb.WriteString(ss.barVoid.Render(strings.Repeat("─", width-f)))
+	return sb.String()
 }
 
 // fmtClock 毫秒 → mm:ss(零填充;≥1h 用 h:mm:ss)。

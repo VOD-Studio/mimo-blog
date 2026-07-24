@@ -101,6 +101,9 @@ type Model struct {
 	overlayOffset float64
 	overlayVel    float64
 
+	// styles 按调色板派生的样式集(默认调色板;封面加载后按取色重建一次)。
+	styles styleSet
+
 	width  int
 	height int
 
@@ -187,6 +190,7 @@ func New(p player.Player, meta SongMeta, lyric []player.TimedLine, vol int, opts
 		now:          cfg.now,
 		coverProto:   detectCoverProtocol(cfg.getenv),
 		coverFetch:   cfg.coverFetch,
+		styles:       newStyleSet(defaultPalette),
 		stageSpring:  harmonica.NewSpring(harmonica.FPS(frameFPS), 6.0, 0.7),
 		overlaySpring: harmonica.NewSpring(harmonica.FPS(frameFPS), 6.0, 0.7),
 	}
@@ -264,8 +268,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, m.frameCmd()
 	case coverLoadedMsg:
-		// 封面就绪:渲染缓存一次,View 纯读缓存。
+		// 封面就绪:渲染缓存一次,View 纯读缓存;取色一次重建样式(T4,不进帧循环)。
 		m.coverImg = msg.img
+		m.styles = newStyleSet(paletteFromImage(msg.img))
 		cols, rows := m.coverRect()
 		m.coverLines = renderCoverLines(m.coverProto, msg.png, msg.img, cols, rows)
 		if m.coverProto == coverKitty {

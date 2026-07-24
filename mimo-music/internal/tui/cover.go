@@ -200,12 +200,12 @@ func hexOf(c color.Color) string {
 	return fmt.Sprintf("#%02x%02x%02x", r>>8, g>>8, b>>8)
 }
 
-// coverPlaceholder 占位:♪ 居中 + 默认调色板边框(拉取失败/无 PicUrl/off)。
+// coverPlaceholder 占位:♪ 居中 + 调色板主色边框(拉取失败/无 PicUrl/off)。
 // 与同 rect 的图像渲染行数一致(高度保持)。
-func coverPlaceholder(cols, rows int) string {
+func coverPlaceholder(cols, rows int, border lipgloss.Color) string {
 	inner := lipgloss.Place(cols-2, rows-2, lipgloss.Center, lipgloss.Center, faintStyle.Render("♪"))
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(colorPrimary).
+		BorderForeground(border).
 		Render(inner)
 }
