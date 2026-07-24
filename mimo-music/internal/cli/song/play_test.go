@@ -153,6 +153,8 @@ func testPlayDeps(p *fakePlayer, handoff *tuiHandoff) playDeps {
 			p.vol = volume
 			return p
 		},
+		// 默认拉歌词:空歌词降级路径(歌词用例各自覆写)。
+		fetchLyric: func(_ context.Context, _ int64) (string, error) { return "", nil },
 		stdinIsTTY: func() bool { return true },
 		runTUI: func(p player.Player, meta tui.SongMeta, lyric []player.TimedLine, vol int, notice string) error {
 			handoff.called = true
@@ -380,10 +382,10 @@ func TestRunPlay_BadStart(t *testing.T) {
 	}
 }
 
-// ==================== --lyric 模式(issue #22)====================
+// ==================== 歌词默认拉取(T2,issue #64)====================
 
-// TestRunPlay_LyricFlag --lyric=true 触发 fetchLyric 调用,歌词交给 TUI。
-func TestRunPlay_LyricFlag(t *testing.T) {
+// TestRunPlay_LyricDefaultOn 默认(不加 flag)拉歌词,歌词交给 TUI 舞台。
+func TestRunPlay_LyricDefaultOn(t *testing.T) {
 	t.Parallel()
 	k, _, _ := newTestKit()
 	p := &fakePlayer{totalMs: 323000}
@@ -394,33 +396,33 @@ func TestRunPlay_LyricFlag(t *testing.T) {
 		fetched = true
 		return "[00:01.00]第一行\n[00:02.00]第二行\n", nil
 	}
-	if err := runPlay(k, 347230, 1, 75, "0", true, deps); err != nil {
+	if err := runPlay(k, 347230, 1, 75, "0", false, deps); err != nil {
 		t.Fatalf("运行失败: %v", err)
 	}
 	if !fetched {
-		t.Error("--lyric 应调用 fetchLyric")
+		t.Error("默认应调用 fetchLyric 拉歌词")
 	}
 	if len(handoff.lyric) != 2 || handoff.lyric[0].Text != "第一行" {
 		t.Errorf("歌词应解析并交接 TUI,got %+v", handoff.lyric)
 	}
 }
 
-// TestRunPlay_LyricOff_NoFetch --lyric=false 不调 fetchLyric,交接 nil。
-func TestRunPlay_LyricOff_NoFetch(t *testing.T) {
+// TestRunPlay_NoLyric_NoFetch --no-lyric 不调 fetchLyric,交接 nil。
+func TestRunPlay_NoLyric_NoFetch(t *testing.T) {
 	t.Parallel()
 	k, _, _ := newTestKit()
 	p := &fakePlayer{totalMs: 323000}
 	handoff := &tuiHandoff{}
 	deps := testPlayDeps(p, handoff)
 	deps.fetchLyric = func(_ context.Context, _ int64) (string, error) {
-		t.Error("--lyric=false 不应调用 fetchLyric")
+		t.Error("--no-lyric 不应调用 fetchLyric")
 		return "", nil
 	}
-	if err := runPlay(k, 347230, 1, 75, "0", false, deps); err != nil {
+	if err := runPlay(k, 347230, 1, 75, "0", true, deps); err != nil {
 		t.Fatalf("运行失败: %v", err)
 	}
 	if handoff.lyric != nil {
-		t.Errorf("无歌词模式交接应为 nil,got %+v", handoff.lyric)
+		t.Errorf("--no-lyric 交接应为 nil,got %+v", handoff.lyric)
 	}
 }
 
@@ -434,7 +436,7 @@ func TestRunPlay_LyricEmptyDegrades(t *testing.T) {
 	deps.fetchLyric = func(_ context.Context, _ int64) (string, error) {
 		return "", nil
 	}
-	if err := runPlay(k, 347230, 1, 75, "0", true, deps); err != nil {
+	if err := runPlay(k, 347230, 1, 75, "0", false, deps); err != nil {
 		t.Fatalf("空歌词应静默降级 exit 0,got %v", err)
 	}
 	if !strings.Contains(errBuf.String(), "该歌曲暂无歌词") {
@@ -459,7 +461,7 @@ func TestRunPlay_LyricFetchErrorDegrades(t *testing.T) {
 	deps.fetchLyric = func(_ context.Context, _ int64) (string, error) {
 		return "", errors.New("network down")
 	}
-	if err := runPlay(k, 347230, 1, 75, "0", true, deps); err != nil {
+	if err := runPlay(k, 347230, 1, 75, "0", false, deps); err != nil {
 		t.Fatalf("歌词失败应静默降级 exit 0,got %v", err)
 	}
 	if !strings.Contains(errBuf.String(), "歌词获取失败") {
@@ -472,17 +474,17 @@ func TestRunPlay_LyricFetchErrorDegrades(t *testing.T) {
 
 // ==================== flag 规格 ====================
 
-// TestNewPlay_Flags flag 规格:--level/--volume/--start/--lyric 默认值;
-// 缺 id(无 --id 无位置参数)报错。
+// TestNewPlay_Flags flag 规格:--level/--volume/--start/--no-lyric 默认值;
+// --lyric 已删除(T2 改默认拉取);缺 id(无 --id 无位置参数)报错。
 func TestNewPlay_Flags(t *testing.T) {
 	t.Parallel()
 	k, _, _ := newTestKit()
 	c := newPlay(k)
 	for name, want := range map[string]string{
-		"level":  "1",
-		"volume": "75",
-		"start":  "0",
-		"lyric":  "false",
+		"level":    "1",
+		"volume":   "75",
+		"start":    "0",
+		"no-lyric": "false",
 	} {
 		f := c.Flags().Lookup(name)
 		if f == nil {
@@ -491,6 +493,9 @@ func TestNewPlay_Flags(t *testing.T) {
 		if f.DefValue != want {
 			t.Errorf("--%s 默认值 = %q, want %q", name, f.DefValue, want)
 		}
+	}
+	if f := c.Flags().Lookup("lyric"); f != nil {
+		t.Error("--lyric 应已删除(T2 改默认拉取,--no-lyric 关闭)")
 	}
 	c.SetArgs([]string{})
 	if err := c.Execute(); err == nil {

@@ -1,6 +1,6 @@
 // song play 命令:从 flag 解析到音频输出的端到端垂直切片
-// (PRD-0013 Phase C,issue #21;--lyric 是 #22,位置参数是 #24;
-// 播放屏 bubbletea 化是 PRD-0016 T1,issue #62)。
+// (PRD-0013 Phase C,issue #21;歌词是 #22(现为默认拉取),位置参数是 #24;
+// 播放屏 bubbletea 化是 PRD-0016 T1 #62,歌词默认展示是 T2 #64)。
 //
 // 流程:非 TTY/--json 拒绝 → URL(拿直链) → Detail(元数据) →
 // Player.Load(后台预缓冲,spinner 显示水位) → Player.Play(起播意图) →
@@ -39,7 +39,7 @@ func newPlay(k *kit.Kit) *cobra.Command {
 	var level int
 	var volume int
 	var start string
-	var lyric bool
+	var noLyric bool
 	c := &cobra.Command{
 		Use:   "play",
 		Short: "播放歌曲(交互式,键盘控制)",
@@ -49,14 +49,14 @@ func newPlay(k *kit.Kit) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runPlay(k, rid, level, volume, start, lyric, defaultPlayDeps(k))
+			return runPlay(k, rid, level, volume, start, noLyric, defaultPlayDeps(k))
 		},
 	}
 	c.Flags().Int64Var(&id, "id", 0, "歌曲 ID")
 	c.Flags().IntVar(&level, "level", 1, "音质: 1=standard 2=exhigh 3=lossless 4=hires")
 	c.Flags().IntVar(&volume, "volume", 75, "启动音量 0-100")
 	c.Flags().StringVar(&start, "start", "0", "起始位置(秒数或 mm:ss)")
-	c.Flags().BoolVar(&lyric, "lyric", false, "播放时歌词同步滚动")
+	c.Flags().BoolVar(&noLyric, "no-lyric", false, "关闭歌词拉取与舞台展示")
 	return c
 }
 
@@ -67,7 +67,7 @@ func newPlay(k *kit.Kit) *cobra.Command {
 type playDeps struct {
 	fetchURL    func(ctx context.Context, id int64, level int) (*mmpb.SongURL, error)
 	fetchDetail func(ctx context.Context, id int64) (*mmpb.Song, error)
-	// fetchLyric 拉 LRC 文本(--lyric 用)。返回空串 = 无歌词(静默降级)。
+	// fetchLyric 拉 LRC 文本(默认拉取,--no-lyric 关闭)。返回空串 = 无歌词(静默降级)。
 	fetchLyric func(ctx context.Context, id int64) (string, error)
 	// newPlayer 按启动音量构造 Player(生产:beep 后端)。
 	newPlayer func(volume int) player.Player
@@ -131,9 +131,9 @@ func defaultPlayDeps(k *kit.Kit) playDeps {
 // exit 1:无音源 / 音频设备初始化失败 / 加载失败;
 // exit 0:q/Esc/EOF 正常退出。
 //
-// lyric=true 时(--lyric):起播后额外拉歌词,TUI 渲染歌词窗口(issue #22)。
+// 歌词默认拉取(T2 #64):起播后拉 LRC,TUI 歌词舞台展示;--no-lyric 关闭。
 // 无歌词静默降级(stderr 警告 + TUI notice),播放继续。
-func runPlay(k *kit.Kit, id int64, level, volume int, start string, lyric bool, deps playDeps) error {
+func runPlay(k *kit.Kit, id int64, level, volume int, start string, noLyric bool, deps playDeps) error {
 	// 1. 先做非 TTY 检查,再 --json(issue #21 既定顺序)。
 	if !deps.stdinIsTTY() {
 		return fmt.Errorf("%w:播放命令需要交互式终端,请直接运行而非管道", kit.ErrUsage)
@@ -193,12 +193,12 @@ func runPlay(k *kit.Kit, id int64, level, volume int, start string, lyric bool, 
 		}
 	}
 
-	// 7.5. 歌词(--lyric):拉 LRC 文本 → SortedLRC(按时间轴排序,供二分查找)。
-	// 失败或空歌词静默降级:stderr 警告 + TUI notice(警告先于 TUI 接管打印,
-	// 不进 notice 用户看不到原因),播放继续无歌词窗口(PRD:无歌词不留空白行)。
+	// 7.5. 歌词(默认拉取,--no-lyric 关闭):拉 LRC 文本 → SortedLRC(按时间轴排序,
+	// 供二分查找)。失败或空歌词静默降级:stderr 警告 + TUI notice(警告先于 TUI 接管
+	// 打印,不进 notice 用户看不到原因),播放继续无歌词舞台(PRD:无歌词不留空白行)。
 	var lyricLines []player.TimedLine
 	var lyricNotice string
-	if lyric {
+	if !noLyric {
 		lyricLines, lyricNotice = loadLyric(ctx, k, id, deps)
 	}
 

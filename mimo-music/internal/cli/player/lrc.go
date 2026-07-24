@@ -70,7 +70,7 @@ func ParseLRC(text string) []TimedLine {
 
 // SortedLRC 在 ParseLRC 基础上按 TimeMs 升序稳定排序。
 // 相等时间戳保持源相对顺序(稳定)。
-// 用于:song play --lyric 的当前行二分查找。
+// 用于:song play 歌词舞台的当前行二分查找。
 func SortedLRC(text string) []TimedLine {
 	lines := ParseLRC(text)
 	// slices.SortStableFunc 是稳定排序——相等 TimeMs 保持源序。
