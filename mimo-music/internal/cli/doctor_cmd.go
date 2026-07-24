@@ -116,6 +116,9 @@ func probeCompletionInstalled(shell string) (path string, ok bool) {
 			filepath.Join(home, ".local", "share", "bash-completion", "completions", "musicctl"),
 			filepath.Join("/etc", "bash_completion.d", "musicctl"),
 		}
+		if xdgData != "" {
+			candidates = append(candidates, filepath.Join(xdgData, "bash-completion", "completions", "musicctl"))
+		}
 	case "fish":
 		candidates = []string{
 			filepath.Join(home, ".config", "fish", "completions", "musicctl.fish"),

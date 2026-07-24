@@ -63,16 +63,17 @@ func runInstallCompletion(root *cobra.Command, out io.Writer) error {
 	}
 
 	// zsh 需手动加 fpath(无用户级自动加载目录);bash/fish 自动加载。
-	if !changed {
-		fmt.Fprintf(out, "%s 补全脚本已是最新(%s)。\n", shell, target)
-	} else {
+	// fpath 教程只在首次生成时输出一次,幂等重跑保持安静(clig.dev)。
+	if changed {
 		fmt.Fprintf(out, "已生成 %s 补全脚本:%s\n", shell, target)
+		if shell == "zsh" {
+			fmt.Fprintln(out, "zsh 默认 fpath 不含 ~/.zsh/completions,需在 ~/.zshrc 的 compinit 之前加一行:")
+			fmt.Fprintln(out, "  fpath=(~/.zsh/completions $fpath)")
+		}
+		fmt.Fprintln(out, "重开终端后 musicctl <TAB> 会列命令。")
+	} else {
+		fmt.Fprintf(out, "%s 补全脚本已是最新(%s)。\n", shell, target)
 	}
-	if shell == "zsh" {
-		fmt.Fprintln(out, "zsh 默认 fpath 不含 ~/.zsh/completions,需在 ~/.zshrc 的 compinit 之前加一行:")
-		fmt.Fprintln(out, "  fpath=(~/.zsh/completions $fpath)")
-	}
-	fmt.Fprintln(out, "重开终端后 musicctl <TAB> 会列命令。")
 	return nil
 }
 

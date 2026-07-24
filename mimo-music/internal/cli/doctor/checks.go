@@ -108,11 +108,11 @@ func ShellName(shellPath string) string {
 }
 
 // completionInstallHint 返回该 shell 的一键安装命令。
-// 统一指向 musicctl install-completion(自动检测 shell + 生成脚本 + 写配置)。
+// 统一指向 musicctl install-completion(自动检测 shell + 生成补全脚本,不改 shell 配置)。
 func completionInstallHint(shell string) string {
 	switch shell {
 	case "zsh", "bash", "fish":
-		return "运行 musicctl install-completion 自动安装(生成脚本 + 配置,幂等)"
+		return "运行 musicctl install-completion 生成补全脚本(bash/fish 自动加载;zsh 需手动加 fpath)"
 	default:
 		return "运行 musicctl install-completion,或手动 musicctl completion <shell> 并按 shell 文档 source"
 	}
