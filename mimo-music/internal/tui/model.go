@@ -224,13 +224,20 @@ func (m Model) frameCmd() tea.Cmd {
 }
 
 // rebuildCoverLines resize 重整封面缓存行:halfblock 按新 rect 重采样;
-// kitty/iterm2 超出行数截尾(首行 placeholder/OSC 内容不变,图像层自然裁剪)。
+// kitty placeholder 行无状态,直接按新 rect 重生成(截尾可逆);
+// iterm2 超出行数截尾(首行 OSC 转义不变,图像层自然裁剪;
+// 放大不恢复——重发 OSC 会叠图,resize 低频,归真机 smoke)。
 func (m *Model) rebuildCoverLines() {
 	cols, rows := m.coverRect()
-	if m.coverProto == coverHalfblock {
+	switch m.coverProto {
+	case coverHalfblock:
 		m.coverLines = halfblockLines(m.coverImg, cols, rows)
-	} else if len(m.coverLines) > rows {
-		m.coverLines = m.coverLines[:rows]
+	case coverKitty:
+		m.coverLines = kittyPlaceholderLines(cols, rows)
+	default:
+		if len(m.coverLines) > rows {
+			m.coverLines = m.coverLines[:rows]
+		}
 	}
 	m.rebuildCoverView()
 }
