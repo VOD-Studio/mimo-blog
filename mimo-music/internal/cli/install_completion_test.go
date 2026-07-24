@@ -8,9 +8,11 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
+
+	"github.com/VOD-Studio/mimo-music/internal/cli/doctor"
 )
 
-// withTestHome 设临时 HOME,返回清理函数(隔离,不碰真实 ~/.zshrc 等)。
+// withTestHome 设临时 HOME,返回路径(隔离,不碰真实 ~/.zshrc 等)。
 func withTestHome(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -38,6 +40,7 @@ func TestCompletionScriptPath(t *testing.T) {
 }
 
 func TestCompletionScriptPath_UnsupportedShell(t *testing.T) {
+	withTestHome(t)
 	_, err := completionScriptPath("powershell")
 	require.Error(t, err)
 }
@@ -67,73 +70,42 @@ func TestWriteCompletionScript_ContentChange_Changed(t *testing.T) {
 	require.True(t, changed, "内容变化应 changed=true")
 }
 
-func TestEnsureShellConfig_BashFish_NoChange(t *testing.T) {
-	withTestHome(t)
-	for _, shell := range []string{"bash", "fish"} {
-		t.Run(shell, func(t *testing.T) {
-			changed, cfg, err := ensureShellConfig(shell)
-			require.NoError(t, err)
-			require.False(t, changed, "%s 不改配置", shell)
-			require.Empty(t, cfg)
-		})
-	}
-}
-
-func TestEnsureShellConfig_Zsh_FirstAdd(t *testing.T) {
-	dir := withTestHome(t)
-	changed, cfg, err := ensureShellConfig("zsh")
-	require.NoError(t, err)
-	require.True(t, changed, "首次应添加")
-	require.Equal(t, filepath.Join(dir, ".zshrc"), cfg)
-	// .zshrc 应含 fpath + compinit + marker。
-	content, err := os.ReadFile(cfg)
-	require.NoError(t, err)
-	s := string(content)
-	require.Contains(t, s, "fpath=(~/.zsh/completions $fpath)")
-	require.Contains(t, s, "compinit")
-	require.Contains(t, s, "musicctl completion")
-}
-
-func TestEnsureShellConfig_Zsh_Idempotent(t *testing.T) {
-	withTestHome(t)
-	_, cfg, _ := ensureShellConfig("zsh")
-	changed, _, err := ensureShellConfig("zsh")
-	require.NoError(t, err)
-	require.False(t, changed, "已含 marker 再跑应 changed=false")
-	// 文件不应被追加第二份。
-	content, _ := os.ReadFile(cfg)
-	require.Equal(t, 1, strings.Count(string(content), "musicctl completion"))
-}
-
-func TestShellNameFromFile(t *testing.T) {
-	cases := []struct {
-		shellPath string
-		want      string
-	}{
-		{"/bin/zsh", "zsh"},
-		{"/usr/local/bin/fish", "fish"},
-		{"zsh", "zsh"},
-		{"", ""},
-		{"/bin/xonsh", ""},
-	}
-	for _, tc := range cases {
-		require.Equal(t, tc.want, shellNameFromFile(tc.shellPath), "shellPath=%q", tc.shellPath)
-	}
-}
-
 // runInstallCompletion 端到端:用真实 NewRootCommand 生成脚本,隔离 HOME。
-func TestRunInstallCompletion_ZshEndToEnd(t *testing.T) {
+
+func TestRunInstallCompletion_ZshDoesNotTouchZshrc(t *testing.T) {
 	dir := withTestHome(t)
 	t.Setenv("SHELL", "/bin/zsh")
 	root := &cobra.Command{Use: "musicctl"}
 	var out strings.Builder
 	require.NoError(t, runInstallCompletion(root, &out))
-	// 脚本 + .zshrc 都应生成。
+	// 脚本应生成。
 	require.FileExists(t, filepath.Join(dir, ".zsh", "completions", "_musicctl"))
-	require.FileExists(t, filepath.Join(dir, ".zshrc"))
-	// 输出应含路径 + 生效提示。
-	require.Contains(t, out.String(), "已写入 zsh 补全")
-	require.Contains(t, out.String(), "生效")
+	// 关键(路线 A):绝不创建/改写 .zshrc。
+	_, err := os.Stat(filepath.Join(dir, ".zshrc"))
+	require.True(t, os.IsNotExist(err), "install-completion 不应碰 .zshrc")
+	// 输出应提示手动加 fpath。
+	require.Contains(t, out.String(), "fpath")
+}
+
+func TestRunInstallCompletion_BashNoFpathHint(t *testing.T) {
+	dir := withTestHome(t)
+	t.Setenv("SHELL", "/bin/bash")
+	root := &cobra.Command{Use: "musicctl"}
+	var out strings.Builder
+	require.NoError(t, runInstallCompletion(root, &out))
+	require.FileExists(t, filepath.Join(dir, ".local", "share", "bash-completion", "completions", "musicctl"))
+	// bash 自动加载,不应有手动 fpath 提示。
+	require.NotContains(t, out.String(), "fpath")
+}
+
+func TestRunInstallCompletion_FishNoFpathHint(t *testing.T) {
+	dir := withTestHome(t)
+	t.Setenv("SHELL", "/usr/local/bin/fish")
+	root := &cobra.Command{Use: "musicctl"}
+	var out strings.Builder
+	require.NoError(t, runInstallCompletion(root, &out))
+	require.FileExists(t, filepath.Join(dir, ".config", "fish", "completions", "musicctl.fish"))
+	require.NotContains(t, out.String(), "fpath")
 }
 
 func TestRunInstallCompletion_UnknownShell_Error(t *testing.T) {
@@ -143,4 +115,47 @@ func TestRunInstallCompletion_UnknownShell_Error(t *testing.T) {
 	err := runInstallCompletion(root, &strings.Builder{})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "无法识别")
+}
+
+func TestRunInstallCompletion_Idempotent(t *testing.T) {
+	withTestHome(t)
+	t.Setenv("SHELL", "/bin/bash")
+	root := &cobra.Command{Use: "musicctl"}
+	var out1, out2 strings.Builder
+	require.NoError(t, runInstallCompletion(root, &out1))
+	require.NoError(t, runInstallCompletion(root, &out2))
+	require.Contains(t, out2.String(), "已是最新", "幂等再跑应提示已是最新")
+}
+
+// ShellName 复用 doctor 包(消除重复);Windows 路径 + .exe 后缀场景在 doctor 包测试,
+// 这里验证 cli 调 doctor.ShellName 正确接线。
+func TestRunInstallCompletion_WindowsPwshExe(t *testing.T) {
+	withTestHome(t)
+	t.Setenv("SHELL", `C:\Program Files\PowerShell\7\pwsh.exe`)
+	root := &cobra.Command{Use: "musicctl"}
+	err := runInstallCompletion(root, &strings.Builder{})
+	// pwsh 不在 install-completion 支持列表(只 zsh/bash/fish),应报无法识别
+	// (而非崩溃)。验证 Windows 路径解析不 panic。
+	require.Error(t, err)
+}
+
+func TestDoctorShellName_Reused(t *testing.T) {
+	// 验证 cli 包通过 doctor.ShellName 复用,行为正确。
+	cases := []struct {
+		shellPath string
+		want      string
+	}{
+		{"/bin/zsh", "zsh"},
+		{"/usr/local/bin/fish", "fish"},
+		{"zsh", "zsh"},
+		{"", ""},
+		// Windows 场景(filepath.Base 处理反斜杠 + 去 .exe)。
+		{`C:\tools\pwsh.exe`, "pwsh"},
+		{`/usr/bin/zsh`, "zsh"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.shellPath, func(t *testing.T) {
+			require.Equal(t, tc.want, doctor.ShellName(tc.shellPath))
+		})
+	}
 }

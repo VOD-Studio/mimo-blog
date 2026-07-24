@@ -3,6 +3,7 @@ package doctor
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/VOD-Studio/mimo-music/internal/cli/version"
 )
@@ -59,7 +60,7 @@ func SessionChecker(cookieProbe func() string, netProbe func(ctx context.Context
 func CompletionChecker(shell string, installedProbe func(shell string) (path string, ok bool)) Checker {
 	return CheckerFunc(func() Result {
 		// 归一 shell 名:SHELL 可能是 /bin/zsh、/usr/local/bin/fish 等。
-		sh := shellName(shell)
+		sh := ShellName(shell)
 		if sh == "" {
 			return Result{Name: "补全", Status: StatusWarn,
 				Detail: "无法识别当前 shell($SHELL 未设)",
@@ -67,8 +68,14 @@ func CompletionChecker(shell string, installedProbe func(shell string) (path str
 		}
 		path, ok := installedProbe(sh)
 		if ok {
-			return Result{Name: "补全", Status: StatusPass,
-				Detail: fmt.Sprintf("%s 补全已安装(%s)", sh, path)}
+			// zsh 即便脚本在,默认 fpath 不含 ~/.zsh/completions,补全可能仍不生效。
+			// 无法跨进程可靠检测 fpath,故 zsh 已装也附排查提示(诚实)。
+			r := Result{Name: "补全", Status: StatusPass,
+				Detail: fmt.Sprintf("%s 补全脚本已安装(%s)", sh, path)}
+			if sh == "zsh" {
+				r.FixHint = "若 musicctl <TAB> 仍列文件,确认 ~/.zshrc 在 compinit 前含: fpath=(~/.zsh/completions $fpath)"
+			}
+			return r
 		}
 		return Result{Name: "补全", Status: StatusWarn,
 			Detail: fmt.Sprintf("%s 补全未安装(Tab 将列文件而非 musicctl 命令)", sh),
@@ -76,18 +83,23 @@ func CompletionChecker(shell string, installedProbe func(shell string) (path str
 	})
 }
 
-// shellName 从 $SHELL 路径提取 shell 名(zsh/bash/fish/powershell),未知返回空。
-func shellName(shellPath string) string {
+// ShellName 从 $SHELL 路径提取 shell 名(zsh/bash/fish/powershell),未知返回空。
+//
+// 跨平台处理路径分隔符:Unix 用 /、Windows 用 \。$SHELL 在 Windows 上可能是
+// 反斜杠路径(如 C:\...\pwsh.exe)。filepath.Base 是平台相关的(Unix build 不认 \),
+// 故用 strings.LastIndexAny 同时认 / 和 \,取末段,修复评审指出的 Windows 问题。
+// Windows 可执行文件常带 .exe 后缀,去除后再匹配。
+//
+// 导出供 cli 包(install-completion)复用,避免重复实现(评审指出的代码臭味)。
+func ShellName(shellPath string) string {
 	if shellPath == "" {
 		return ""
 	}
 	base := shellPath
-	for i := len(shellPath) - 1; i >= 0; i-- {
-		if shellPath[i] == '/' {
-			base = shellPath[i+1:]
-			break
-		}
+	if i := strings.LastIndexAny(shellPath, `/\`); i >= 0 {
+		base = shellPath[i+1:]
 	}
+	base = strings.TrimSuffix(base, ".exe")
 	switch base {
 	case "zsh", "bash", "fish", "pwsh", "powershell":
 		return base

@@ -1,17 +1,19 @@
 ## musicctl install-completion
 
-一键安装当前 shell 的 Tab 补全(生成脚本 + 配置,幂等)
+生成当前 shell 的 Tab 补全脚本到标准目录(bash/fish 自动加载;zsh 需手动加 fpath)
 
 ### Synopsis
 
-自动检测当前 shell($SHELL)并安装 musicctl 的 Tab 补全:
+生成 musicctl 的 Tab 补全脚本到当前 shell($SHELL)的标准目录:
 
-  zsh   → ~/.zsh/completions/_musicctl + ~/.zshrc 加 fpath
+  zsh   → ~/.zsh/completions/_musicctl(zsh 默认 fpath 不含此目录,需手动加 fpath)
   bash  → ~/.local/share/bash-completion/completions/musicctl(bash-completion 自动加载)
   fish  → ~/.config/fish/completions/musicctl.fish(fish 自动加载)
 
-已安装/已配置则跳过(幂等,可重复跑)。安装后重开终端或 source 配置生效。
-powershell/未知 shell 退化为提示手动跑 musicctl completion <shell>。
+本命令不改写你的 shell 配置文件(避免拖慢启动/覆盖框架策略)。bash/fish 装好即用;
+zsh 需在 ~/.zshrc 的 compinit 之前手动加一行:
+  fpath=(~/.zsh/completions $fpath)
+然后重开终端。重复运行是幂等的(脚本内容一致则不重写)。
 
 ```
 musicctl install-completion [flags]
