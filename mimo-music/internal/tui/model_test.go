@@ -28,6 +28,8 @@ type fakePlayer struct {
 	vol     int
 	seekErr error
 	calls   []string
+	// progressN 记录 Progress 调用次数(T2 验收:动画帧不加密采样)。
+	progressN int
 }
 
 func (f *fakePlayer) record(format string, args ...any) {
@@ -81,6 +83,7 @@ func (f *fakePlayer) Volume(delta int) error {
 func (f *fakePlayer) Progress() (int64, int64, player.State) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
+	f.progressN++
 	return f.curMs, f.totalMs, f.state
 }
 

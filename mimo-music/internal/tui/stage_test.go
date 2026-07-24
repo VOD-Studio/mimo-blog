@@ -121,6 +121,20 @@ func TestNoLyric_Placeholder(t *testing.T) {
 
 // ==================== 浮层(T2,issue #64) ====================
 
+// TestFrameMsg_NoPlayerSampling 动画帧纯内存态,不采样 Player(T2 验收)。
+func TestFrameMsg_NoPlayerSampling(t *testing.T) {
+	t.Parallel()
+	p := &fakePlayer{state: player.StatePlaying, totalMs: 203000}
+	m := New(p, testMeta(), stageLyric(), 75, WithInitialSize(80, 24))
+	before := p.progressN
+	for range 30 {
+		m, _ = send(t, m, frameMsg(time.Now()))
+	}
+	if p.progressN != before {
+		t.Fatalf("动画帧不应调用 Progress,多调 %d 次", p.progressN-before)
+	}
+}
+
 // TestVolumeOverlay_ShowOnVolumeKey 音量键弹音量浮层(弹簧入场偏移 +1)。
 func TestVolumeOverlay_ShowOnVolumeKey(t *testing.T) {
 	t.Parallel()
