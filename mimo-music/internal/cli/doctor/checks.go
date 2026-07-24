@@ -46,15 +46,71 @@ func SessionChecker(cookieProbe func() string, netProbe func(ctx context.Context
 	})
 }
 
-// CompletionChecker 检查补全安装。
+// CompletionChecker 检查当前 shell 的补全脚本是否已安装。
 //
-// 无法可靠检测各 shell 的补全是否已 source(依赖 shell 配置文件),退化为静态指引:
-// 告诉用户跑 musicctl completion <shell> 并 source。这是 pass(指引性,非问题)。
-func CompletionChecker() Checker {
+// 检测常见安装位置是否存在补全脚本(zsh: ~/.zsh/completions/_musicctl;
+// bash: ~/.local/share/bash-completion/completions/musicctl;fish: ~/.config/fish/...)。
+// 这覆盖大多数安装方式;fpath 是否真 source 无法跨进程可靠检测,故文件存在视为已装。
+//
+// 已装 → pass(显示路径);未装 → warn(给一键安装命令,引导用户装上)。
+// warn 非 fail:没装补全 musicctl 仍可用,只是 Tab 不列命令。
+//
+// shell 从 $SHELL 推断;installedProbe 注入使测试用 fake(不碰真实文件系统)。
+func CompletionChecker(shell string, installedProbe func(shell string) (path string, ok bool)) Checker {
 	return CheckerFunc(func() Result {
-		return Result{Name: "补全", Status: StatusPass,
-			Detail: "运行 musicctl completion <shell> 生成并 source 即可启用 TAB 补全"}
+		// 归一 shell 名:SHELL 可能是 /bin/zsh、/usr/local/bin/fish 等。
+		sh := shellName(shell)
+		if sh == "" {
+			return Result{Name: "补全", Status: StatusWarn,
+				Detail: "无法识别当前 shell($SHELL 未设)",
+				FixHint: "手动跑 musicctl completion <shell> 并按 shell 文档 source"}
+		}
+		path, ok := installedProbe(sh)
+		if ok {
+			return Result{Name: "补全", Status: StatusPass,
+				Detail: fmt.Sprintf("%s 补全已安装(%s)", sh, path)}
+		}
+		return Result{Name: "补全", Status: StatusWarn,
+			Detail: fmt.Sprintf("%s 补全未安装(Tab 将列文件而非 musicctl 命令)", sh),
+			FixHint: completionInstallHint(sh)}
 	})
+}
+
+// shellName 从 $SHELL 路径提取 shell 名(zsh/bash/fish/powershell),未知返回空。
+func shellName(shellPath string) string {
+	if shellPath == "" {
+		return ""
+	}
+	base := shellPath
+	for i := len(shellPath) - 1; i >= 0; i-- {
+		if shellPath[i] == '/' {
+			base = shellPath[i+1:]
+			break
+		}
+	}
+	switch base {
+	case "zsh", "bash", "fish", "pwsh", "powershell":
+		return base
+	}
+	return ""
+}
+
+// completionInstallHint 返回该 shell 的一键安装命令。
+// 用 cobra 生成的脚本写到常见位置(用户需 source 或重开终端)。
+func completionInstallHint(shell string) string {
+	switch shell {
+	case "zsh":
+		return "mkdir -p ~/.zsh/completions && musicctl completion zsh > ~/.zsh/completions/_musicctl" +
+			"\n        并在 ~/.zshrc 加: fpath=(~/.zsh/completions $fpath),重开终端"
+	case "bash":
+		return "mkdir -p ~/.local/share/bash-completion/completions && " +
+			"musicctl completion bash > ~/.local/share/bash-completion/completions/musicctl"
+	case "fish":
+		return "mkdir -p ~/.config/fish/completions && " +
+			"musicctl completion fish > ~/.config/fish/completions/musicctl.fish"
+	default:
+		return "运行 musicctl completion <shell> 并按 shell 文档 source"
+	}
 }
 
 // AudioChecker 检查音频后端(beep speaker 探测)。

@@ -95,10 +95,65 @@ func TestSessionChecker_Valid_Pass(t *testing.T) {
 	require.Equal(t, StatusPass, r.Status)
 }
 
-func TestCompletionChecker_PassWithHint(t *testing.T) {
-	r := CompletionChecker().Check()
+func TestCompletionChecker_Installed_Pass(t *testing.T) {
+	c := CompletionChecker("/bin/zsh", func(shell string) (string, bool) {
+		return "/home/u/.zsh/completions/_musicctl", true
+	})
+	r := c.Check()
 	require.Equal(t, StatusPass, r.Status)
-	require.Contains(t, r.Detail, "completion")
+	require.Contains(t, r.Detail, "zsh")
+	require.Contains(t, r.Detail, "_musicctl")
+}
+
+func TestCompletionChecker_NotInstalled_WarnWithInstallCmd(t *testing.T) {
+	cases := []struct {
+		shell     string
+		wantInCmd string
+	}{
+		{"/bin/zsh", "~/.zsh/completions/_musicctl"},
+		{"/usr/bin/fish", "~/.config/fish/completions/musicctl.fish"},
+		{"/bin/bash", "bash-completion/completions/musicctl"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.shell, func(t *testing.T) {
+			c := CompletionChecker(tc.shell, func(string) (string, bool) { return "", false })
+			r := c.Check()
+			require.Equal(t, StatusWarn, r.Status, "未装应 warn 非 fail")
+			require.NotEmpty(t, r.FixHint)
+			require.Contains(t, r.FixHint, tc.wantInCmd, "应给对应 shell 的一键命令")
+		})
+	}
+}
+
+func TestCompletionChecker_UnknownShell(t *testing.T) {
+	c := CompletionChecker("/bin/xonsh", func(string) (string, bool) { return "", false })
+	r := c.Check()
+	require.Equal(t, StatusWarn, r.Status)
+	require.Contains(t, r.Detail, "无法识别")
+}
+
+func TestCompletionChecker_EmptyShell(t *testing.T) {
+	c := CompletionChecker("", func(string) (string, bool) { return "", false })
+	r := c.Check()
+	require.Equal(t, StatusWarn, r.Status)
+}
+
+func TestShellName(t *testing.T) {
+	cases := []struct {
+		shellPath string
+		want      string
+	}{
+		{"/bin/zsh", "zsh"},
+		{"/usr/local/bin/fish", "fish"},
+		{"/bin/bash", "bash"},
+		{"/usr/bin/pwsh", "pwsh"},
+		{"zsh", "zsh"},
+		{"", ""},
+		{"/bin/xonsh", ""},
+	}
+	for _, tc := range cases {
+		require.Equal(t, tc.want, shellName(tc.shellPath), "shellPath=%q", tc.shellPath)
+	}
 }
 
 func TestAudioChecker_Available_Pass(t *testing.T) {
