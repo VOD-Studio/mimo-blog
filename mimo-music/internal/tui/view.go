@@ -67,20 +67,22 @@ const (
 	coverRowsNoLyric   = 15
 )
 
-// coverRect 当前状态的封面区尺寸(单元格)。
+// coverRect 当前状态的封面区尺寸(单元格)。行数 clamp 到可用高度
+// (min 3 行保底):修复 12-18 行高超裁底(布局行数恒 ≤ height)。
 func (m Model) coverRect() (cols, rows int) {
+	avail := max(3, m.height-fixedLines)
 	if len(m.lyric) > 0 {
-		return coverColsWithLyric, coverRowsWithLyric
+		return coverColsWithLyric, min(coverRowsWithLyric, avail)
 	}
-	return coverColsNoLyric, coverRowsNoLyric
+	return coverColsNoLyric, min(coverRowsNoLyric, avail)
 }
 
-// coverView 封面区渲染:已加载用协议渲染缓存;未加载/失败/off 用 ♪ 占位。
+// coverView 封面区渲染:已加载用 join 缓存;未加载/失败/off 用 ♪ 占位。
 func (m Model) coverView() string {
-	cols, rows := m.coverRect()
-	if len(m.coverLines) > 0 {
-		return strings.Join(m.coverLines, "\n")
+	if m.coverViewCache != "" {
+		return m.coverViewCache
 	}
+	cols, rows := m.coverRect()
 	return coverPlaceholder(cols, rows, m.styles.palette.primary.color())
 }
 
@@ -242,7 +244,7 @@ func stateIcon(s player.State) string {
 }
 
 // bar 定宽进度条:━ 填充(主→强调渐变) + ╸ 头部(强调色) + ─ 空;
-// total ≤ 0(未知)全空。cur 越界收敛到 [0,total]。
+// total ≤ 0(未知)全空;cur>total 按满格渲染。
 // 渐变用 styleSet 预计算的 32 档样式,帧循环零插值开销。
 func bar(cur, total int64, width int, ss styleSet) string {
 	if width < 2 {

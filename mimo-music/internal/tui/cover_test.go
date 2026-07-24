@@ -10,8 +10,6 @@ import (
 	"testing"
 	"time"
 
-	tea "charm.land/bubbletea/v2"
-
 	"github.com/VOD-Studio/mimo-music/internal/cli/player"
 )
 
@@ -91,7 +89,8 @@ func TestCoverRectLines_EqualAcrossProtocols(t *testing.T) {
 	}
 }
 
-// TestKittyTransmitOnce kitty:加载 Cmd 一次性含 base64;View 行只含 placement 不含 base64。
+// TestKittyTransmitOnce kitty:传输先于 placeholder(Sequence 保序,C1 回归);
+// View 行只含 Unicode placeholder 不含 base64(transmit-once)。
 func TestKittyTransmitOnce(t *testing.T) {
 	t.Parallel()
 	pngData := synthPNG(t, color.RGBA{A: 255})
@@ -99,27 +98,38 @@ func TestKittyTransmitOnce(t *testing.T) {
 	m := New(p, testMetaWithCover(), nil, 75, WithInitialSize(80, 24),
 		WithEnviron(envOf(map[string]string{"MUSICCTL_IMAGE_PROTOCOL": "kitty"})))
 
+	// coverLoadedMsg:不上架 placeholder,返回 Sequence(先 Raw 传输,后 coverTransmittedMsg)。
 	tm, cmd := m.Update(coverLoadedMsg{img: decodePNG(t, pngData), png: pngData})
 	m = tm.(Model)
 	if cmd == nil {
-		t.Fatal("kitty 加载应返回传输 Cmd")
+		t.Fatal("kitty 加载应返回 Sequence(传输 + 上架)")
 	}
-	// 传输 Cmd → RawMsg:含 a=t 传输 + image id + base64 PNG(一次性)。
-	msg, ok := cmd().(tea.RawMsg)
-	if !ok {
-		t.Fatalf("传输 Cmd 应产生 RawMsg,got %T", cmd())
+	if len(m.coverLines) != 0 {
+		t.Fatal("传输落盘前不应上架 placeholder 行(C1:kitty 对未知 id 引用不显示)")
 	}
-	seq, _ := msg.Msg.(string)
-	if !strings.Contains(seq, "a=t") || !strings.Contains(seq, "i=1") || !strings.Contains(seq, "iVBOR") {
-		t.Errorf("传输序列应含 a=t / image id / base64 PNG,got %q", seq[:min(80, len(seq))])
+	if m.coverTransmitted {
+		t.Fatal("上架前不应标记已传输")
 	}
-	// View 输出不含 base64,只含 placement(a=p)。
+	// 传输序列本身:含 a=t + image id + U=1 virtual placement + base64 PNG(一次性)。
+	seq := kittyTransmitSeq(pngData)
+	if !strings.Contains(seq, "a=t") || !strings.Contains(seq, "i=1") || !strings.Contains(seq, "U=1") || !strings.Contains(seq, "iVBOR") {
+		t.Errorf("传输序列应含 a=t / image id / U=1 / base64 PNG,got %q", seq[:min(80, len(seq))])
+	}
+	// coverTransmittedMsg(传输已落盘):上架 Unicode placeholder,View 无 base64。
+	tm, _ = m.Update(coverTransmittedMsg{img: decodePNG(t, pngData), png: pngData})
+	m = tm.(Model)
+	if !m.coverTransmitted {
+		t.Fatal("上架后应标记已传输")
+	}
 	view := viewOf(m)
 	if strings.Contains(view, "iVBOR") {
 		t.Error("View 输出不应含 base64(transmit-once)")
 	}
-	if !strings.Contains(view, "a=p") {
-		t.Error("View 应含 placement 转义(a=p)")
+	if !strings.Contains(view, "\U0010eeee") {
+		t.Error("View 应含 Unicode placeholder 字符")
+	}
+	if !strings.Contains(view, "\x1b[38;5;1m") {
+		t.Error("View 应含前景色编码 image id(38;5;1)")
 	}
 }
 
@@ -238,6 +248,34 @@ func TestCoverExitDeletesKittyImage(t *testing.T) {
 	}
 	if !strings.Contains(got, "a=d,d=i") {
 		t.Error("退出应按 id 删除 kitty 图像")
+	}
+	// C1 回归:传输字节必须先于 placeholder(kitty 对未知 id 的引用不显示)。
+	idxTransmit := strings.Index(got, "a=t")
+	idxPlaceholder := strings.Index(got, "\U0010eeee")
+	if idxTransmit < 0 || idxPlaceholder < 0 || idxTransmit > idxPlaceholder {
+		t.Errorf("字节序应为 transmit → placeholder,transmit@%d placeholder@%d", idxTransmit, idxPlaceholder)
+	}
+}
+
+// TestCoverRectClampsToHeight 小高度(12 行)封面 rect 收缩,帧高不超终端(M1 回归)。
+func TestCoverRectClampsToHeight(t *testing.T) {
+	t.Parallel()
+	p := &fakePlayer{state: player.StatePlaying, curMs: 2500, totalMs: 203000}
+	// 无歌词:rect 行数 = min(15, 12-4) = 8。
+	m := New(p, testMeta(), nil, 75, WithInitialSize(80, 12))
+	if _, rows := m.coverRect(); rows != 8 {
+		t.Errorf("80×12 无歌词 rect 应收缩为 8 行,got %d", rows)
+	}
+	if n := len(strings.Split(viewOf(m), "\n")); n > 12 {
+		t.Errorf("帧高应 ≤ 终端 12 行,got %d", n)
+	}
+	// 有歌词:rect 行数 = min(10, 8) = 8,帧高同样不超。
+	m2 := New(p, testMeta(), stageLyric(), 75, WithInitialSize(80, 12))
+	if _, rows := m2.coverRect(); rows != 8 {
+		t.Errorf("80×12 有歌词 rect 应收缩为 8 行,got %d", rows)
+	}
+	if n := len(strings.Split(viewOf(m2), "\n")); n > 12 {
+		t.Errorf("有歌词帧高应 ≤ 12,got %d", n)
 	}
 }
 

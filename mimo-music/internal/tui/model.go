@@ -11,6 +11,7 @@
 package tui
 
 import (
+	"strings"
 	"fmt"
 	"image"
 	"io"
@@ -78,12 +79,13 @@ type Model struct {
 	showInfo bool
 
 	// 封面(T3):协议矩阵渲染。coverImg 解码一次(T4 取色复用);
-	// coverLines 为加载时的渲染缓存(View 纯);coverTransmitted 标记 kitty
-	// 已传输(退出时按 id 删除)。
+	// coverLines/coverViewCache 为渲染缓存(View 纯);coverTransmitted 标记
+	// kitty 已传输(退出时按 id 删除)。
 	coverProto       coverProtocol
 	coverFetch       coverFetcher
 	coverImg         image.Image
 	coverLines       []string
+	coverViewCache   string
 	coverFailed      bool
 	coverTransmitted bool
 
@@ -221,6 +223,23 @@ func (m Model) frameCmd() tea.Cmd {
 	return tea.Tick(time.Second/frameFPS, func(t time.Time) tea.Msg { return frameMsg(t) })
 }
 
+// rebuildCoverLines resize 重整封面缓存行:halfblock 按新 rect 重采样;
+// kitty/iterm2 超出行数截尾(首行 placeholder/OSC 内容不变,图像层自然裁剪)。
+func (m *Model) rebuildCoverLines() {
+	cols, rows := m.coverRect()
+	if m.coverProto == coverHalfblock {
+		m.coverLines = halfblockLines(m.coverImg, cols, rows)
+	} else if len(m.coverLines) > rows {
+		m.coverLines = m.coverLines[:rows]
+	}
+	m.rebuildCoverView()
+}
+
+// rebuildCoverView 重建封面 join 缓存(避免帧循环每帧 join 大行)。
+func (m *Model) rebuildCoverView() {
+	m.coverViewCache = strings.Join(m.coverLines, "\n")
+}
+
 // sample 采样 Player.Progress(Buffering 时返回已缓冲/水位,其余返回位置/总时长)。
 // 歌词当前行变化时触发舞台弹簧(新行从 ±1 行偏移滑入)。
 func (m *Model) sample() {
@@ -252,6 +271,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
+		if m.coverImg != nil && len(m.coverLines) > 0 {
+			// resize:封面区按新可用高度重整(halfblock 重采样;kitty/iterm2
+			// 截尾部空格行——kitty placeholder 行/iterm2 首行内容不变不重发,图像层自然裁剪)。
+			m.rebuildCoverLines()
+		}
 		return m, nil
 	case sampleTickMsg:
 		m.sample()
@@ -268,16 +292,28 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, m.frameCmd()
 	case coverLoadedMsg:
-		// 封面就绪:渲染缓存一次,View 纯读缓存;取色一次重建样式(T4,不进帧循环)。
+		// 封面就绪:取色一次重建样式(T4,不进帧循环)。
 		m.coverImg = msg.img
 		m.styles = newStyleSet(paletteFromImage(msg.img))
+		if m.coverProto == coverKitty {
+			// transmit 必须先于 placeholder 落盘(kitty 对未知 id 的引用直接
+			// 丢弃且不重试):tea.Raw 经事件循环写传输字节后,Sequence 后续
+			// coverTransmittedMsg 才上架 placeholder 行,字节序恒为 transmit → placeholder。
+			return m, tea.Sequence(
+				tea.Raw(kittyTransmitSeq(msg.png)),
+				func() tea.Msg { return coverTransmittedMsg{img: msg.img, png: msg.png} },
+			)
+		}
 		cols, rows := m.coverRect()
 		m.coverLines = renderCoverLines(m.coverProto, msg.png, msg.img, cols, rows)
-		if m.coverProto == coverKitty {
-			// 一次性传输(transmit-once);View 行只含 placement。
-			m.coverTransmitted = true
-			return m, tea.Raw(kittyTransmitSeq(msg.png))
-		}
+		m.rebuildCoverView()
+		return m, nil
+	case coverTransmittedMsg:
+		// kitty 传输已落盘:上架 Unicode placeholder 行(transmit-once,View 无 base64)。
+		cols, rows := m.coverRect()
+		m.coverLines = kittyPlaceholderLines(cols, rows)
+		m.coverTransmitted = true
+		m.rebuildCoverView()
 		return m, nil
 	case coverFailedMsg:
 		// 拉取/解码失败静默降级:占位展示(布局不变),取色用默认调色板。

@@ -25,7 +25,7 @@ const (
 	// coverOff 关闭封面(MUSICCTL_IMAGE_PROTOCOL=off),直接占位。
 	coverOff coverProtocol = iota
 	// coverKitty Kitty 图形协议(ghostty/kitty):transmit-once place-many——
-	// 加载时一次性 base64 传输分配 image id,View 行只含 placement 转义。
+	// 加载时一次性 base64 传输分配 image id(U=1 virtual placement),View 行只含 Unicode placeholder。
 	coverKitty
 	// coverITerm2 iTerm2 inline(OSC 1337):图像转义作为静态行嵌入 View,
 	// bubbletea 行 diff 对未变化行不重发,天然 transmit-once。
@@ -76,6 +76,12 @@ type coverLoadedMsg struct {
 // coverFailedMsg 拉取或解码失败(静默降级,占位展示)。
 type coverFailedMsg struct{}
 
+// coverTransmittedMsg kitty 传输已落盘(Sequence 保序:transmit → placeholder)。
+type coverTransmittedMsg struct {
+	img image.Image
+	png []byte
+}
+
 // fetchCoverCmd 异步拉取封面:字节 → 解码一次(同时喂渲染与 T4 取色)→ PNG 重编码。
 func fetchCoverCmd(fetch coverFetcher, picURL string) tea.Cmd {
 	return func() tea.Msg {
@@ -107,7 +113,7 @@ func defaultCoverFetcher(picURL string) []byte {
 func renderCoverLines(proto coverProtocol, pngData []byte, img image.Image, cols, rows int) []string {
 	switch proto {
 	case coverKitty:
-		return kittyPlacementLines(cols, rows)
+		return kittyPlaceholderLines(cols, rows)
 	case coverITerm2:
 		return iterm2Lines(pngData, cols, rows)
 	default:
@@ -115,21 +121,22 @@ func renderCoverLines(proto coverProtocol, pngData []byte, img image.Image, cols
 	}
 }
 
-// kittyPlacementLines Kitty placement:首行 placement 转义(零宽,图像从光标处
-// 覆盖 cols×rows 区域)+ 空格占位;其余行空格。base64 传输在加载 Cmd 一次性完成
-// (tea.Raw),View 输出永远不含 base64——行 diff 不变即零图像开销。
-func kittyPlacementLines(cols, rows int) []string {
-	placement := fmt.Sprintf("\x1b_Ga=p,i=%d,c=%d,r=%d,q=1\x1b\\", kittyImageID, cols, rows)
+// kittyPlaceholderLines Unicode placeholder(ghostty/kitty 默认,oh-my-pi 同款):
+// 前景色编码 image id(38;5;N),U+10EEEE 占位字符区域即图像显示区。
+// 纯文本 cell——placement 走 APC 序列会被 bubbletea v2 cellbuf 剥离(实测),
+// Unicode placeholder 是 View 内嵌图像的唯一可行路径;行内容恒定,diff 不重发。
+func kittyPlaceholderLines(cols, rows int) []string {
+	const placeholder = "\U0010eeee" // kitty unicode placeholder(宽 1,已验证)
+	line := fmt.Sprintf("\x1b[38;5;%dm", kittyImageID) + strings.Repeat(placeholder, cols) + "\x1b[39m"
 	lines := make([]string, rows)
-	lines[0] = placement + strings.Repeat(" ", cols)
-	for i := 1; i < rows; i++ {
-		lines[i] = strings.Repeat(" ", cols)
+	for i := range lines {
+		lines[i] = line
 	}
 	return lines
 }
 
-// kittyTransmitSeq Kitty 传输序列(一次性):f=100 PNG + t=d 内嵌 base64,
-// 按 ≤4096 字节分块(m=1 续块,m=0 末块)。
+// kittyTransmitSeq Kitty 传输序列(一次性):f=100 PNG + t=d 内嵌 base64 +
+// U=1 创建 virtual placement(Unicode placeholder 引用),按 ≤4096 字节分块。
 func kittyTransmitSeq(pngData []byte) string {
 	b64 := base64.StdEncoding.EncodeToString(pngData)
 	var sb strings.Builder
@@ -142,7 +149,7 @@ func kittyTransmitSeq(pngData []byte) string {
 			more = 1
 		}
 		if first {
-			fmt.Fprintf(&sb, "\x1b_Ga=t,f=100,t=d,i=%d,q=2,m=%d;%s\x1b\\", kittyImageID, more, b64[:n])
+			fmt.Fprintf(&sb, "\x1b_Ga=t,f=100,t=d,i=%d,U=1,q=2,m=%d;%s\x1b\\", kittyImageID, more, b64[:n])
 			first = false
 		} else {
 			fmt.Fprintf(&sb, "\x1b_Gi=%d,q=2,m=%d;%s\x1b\\", kittyImageID, more, b64[:n])
@@ -158,11 +165,12 @@ func kittyDeleteSeq() string {
 }
 
 // iterm2Lines iTerm2 inline:首行 OSC 1337 转义(尺寸 N = N 单元格,官方文档)。
-// 图像显示后光标被下推 rows 行,立即 CSI rows A 回退,保持渲染器光标追踪;
-// 其余行空格。转义为静态行内容,行 diff 不重发(天然 transmit-once)。
+// preserveAspectRatio=0 强制铺满 cols×rows(封面近方形,形变不可感知)——
+// 图像下推光标的行数恒等于 rows,CSI rows A 回退恒正确,渲染器光标追踪不失步。
+// 转义为静态行内容,行 diff 不重发(天然 transmit-once)。
 func iterm2Lines(pngData []byte, cols, rows int) []string {
 	b64 := base64.StdEncoding.EncodeToString(pngData)
-	seq := fmt.Sprintf("\x1b]1337;File=inline=1;width=%d;height=%d;preserveAspectRatio=1:%s\a",
+	seq := fmt.Sprintf("\x1b]1337;File=inline=1;width=%d;height=%d;preserveAspectRatio=0:%s\a",
 		cols, rows, b64)
 	lines := make([]string, rows)
 	lines[0] = seq + fmt.Sprintf("\x1b[%dA", rows) + strings.Repeat(" ", cols)
