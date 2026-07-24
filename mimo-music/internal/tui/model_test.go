@@ -295,7 +295,7 @@ func TestTickSampling(t *testing.T) {
 	p.curMs = 61000
 	p.mu.Unlock()
 
-	m, cmd := send(t, m, tickMsg(time.Now()))
+	m, cmd := send(t, m, sampleTickMsg(time.Now()))
 	if m.curMs != 61000 {
 		t.Fatalf("tick 应重新采样进度,got %d", m.curMs)
 	}

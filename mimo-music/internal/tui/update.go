@@ -11,9 +11,12 @@ import (
 // handleKey 键 → 动作分派。语义逐条对齐旧 playUI.handleKey(PRD 行为对齐清单):
 // 空格(播放/暂停)、←/→(∓10s)、Shift+←/→(∓30s)、↑/↓(音量 ±5)、
 // m(静音)、0-9(跳 N×10%)、?(help)、i(info)、q/Esc/Ctrl-C(退出)。
-// notice 一次性:任何按键先清除(沿旧语义)。
+// notice 一次性:任何按键先清除 notice 浮层(沿旧语义)。
 func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	m.notice = ""
+	if m.overlay == overlayNotice {
+		m.overlay = overlayNone
+		m.notice = ""
+	}
 	switch {
 	case msg.Code == tea.KeySpace:
 		// Playing/Buffering → 暂停;Paused/Stopped(播完)→ 播放(重播)。
@@ -52,11 +55,17 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// do 执行 Player 操作,失败写一次性提示(状态栏展示,不打断播放)。
-func (m *Model) do(what string, fn func() error) {
+// do 执行 Player 操作,失败写一次性提示(浮层展示,不打断播放),返回是否成功。
+func (m *Model) do(what string, fn func() error) bool {
 	if err := fn(); err != nil {
 		m.notice = fmt.Sprintf("✗ %s失败: %v", what, err)
+		m.overlay = overlayNotice
+		m.overlayAt = m.now()
+		m.overlayOffset = 1
+		m.overlayVel = 0
+		return false
 	}
+	return true
 }
 
 func (m *Model) seek(offsetSec int64) {
@@ -81,22 +90,35 @@ func (m *Model) effectiveVol() int {
 	return m.vol
 }
 
+// showVolume 弹出音量浮层(弹簧入场,1.5s 无操作淡出)。
+func (m *Model) showVolume() {
+	m.overlay = overlayVolume
+	m.overlayAt = m.now()
+	m.overlayOffset = 1
+	m.overlayVel = 0
+}
+
 // adjustVolume 音量 ±delta(收敛 0-100)。Player.Volume 是 delta 语义:
 // 算出生效音量差值一次调用;静音中按音量键先取消静音再调整。
+// 操作后弹音量浮层(无论差值是否为零——触底/封顶也给反馈)。
 func (m *Model) adjustVolume(delta int) {
 	old := m.effectiveVol()
 	m.vol = min(100, max(0, m.vol+delta))
 	m.muted = false
-	if d := m.effectiveVol() - old; d != 0 {
-		m.do("音量", func() error { return m.p.Volume(d) })
+	d := m.effectiveVol() - old
+	if d != 0 && !m.do("音量", func() error { return m.p.Volume(d) }) {
+		return // 失败提示进 notice 浮层,不被音量浮层盖掉
 	}
+	m.showVolume()
 }
 
-// toggleMute 静音切换(同 adjustVolume 的差值语义)。
+// toggleMute 静音切换(同 adjustVolume 的差值语义)。操作后弹音量浮层。
 func (m *Model) toggleMute() {
 	old := m.effectiveVol()
 	m.muted = !m.muted
-	if d := m.effectiveVol() - old; d != 0 {
-		m.do("静音", func() error { return m.p.Volume(d) })
+	d := m.effectiveVol() - old
+	if d != 0 && !m.do("静音", func() error { return m.p.Volume(d) }) {
+		return
 	}
+	m.showVolume()
 }

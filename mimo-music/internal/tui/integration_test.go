@@ -22,7 +22,7 @@ func TestProgram_GoldenAndQuit(t *testing.T) {
 		WithInput(strings.NewReader("q")),
 		WithOutput(&out),
 		WithInitialSize(80, 24),
-		WithRefreshEvery(10*time.Millisecond),
+		WithSampleEvery(10*time.Millisecond),
 	)
 	if err != nil {
 		t.Fatalf("q 退出应返回 nil,got %v", err)
@@ -46,7 +46,7 @@ func TestProgram_EOFQuits(t *testing.T) {
 			WithInput(strings.NewReader("")), // 立即 EOF
 			WithOutput(&out),
 			WithInitialSize(80, 24),
-			WithRefreshEvery(10*time.Millisecond),
+			WithSampleEvery(10*time.Millisecond),
 		)
 	}()
 	select {
@@ -69,7 +69,7 @@ func TestProgram_KeyDrivesPlayer(t *testing.T) {
 		WithInput(strings.NewReader("\x1b[Cq")),
 		WithOutput(&out),
 		WithInitialSize(80, 24),
-		WithRefreshEvery(10*time.Millisecond),
+		WithSampleEvery(10*time.Millisecond),
 	)
 	if err != nil {
 		t.Fatalf("运行失败: %v", err)
@@ -90,7 +90,7 @@ func TestProgram_OutputIsWriter(t *testing.T) {
 		WithInput(strings.NewReader("q")),
 		WithOutput(&out),
 		WithInitialSize(80, 24),
-		WithRefreshEvery(10*time.Millisecond),
+		WithSampleEvery(10*time.Millisecond),
 	); err != nil {
 		t.Fatal(err)
 	}

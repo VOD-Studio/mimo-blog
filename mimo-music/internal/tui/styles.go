@@ -16,6 +16,9 @@ var (
 	badgeStyle   = lipgloss.NewStyle().Foreground(colorPrimary).Bold(true)
 	dimStyle     = lipgloss.NewStyle().Foreground(colorDim)
 	faintStyle   = lipgloss.NewStyle().Foreground(colorFaint)
+	// 歌词舞台渐暗两档:±1 行近(稍暗)、±2 行远(最暗);当前行 lyricStyle 高亮。
+	nearStyle    = dimStyle
+	farStyle     = faintStyle
 	lyricStyle   = lipgloss.NewStyle().Foreground(colorAccent).Bold(true)
 	noticeStyle  = lipgloss.NewStyle().Foreground(colorAccent)
 	barFillStyle = lipgloss.NewStyle().Foreground(colorPrimary)

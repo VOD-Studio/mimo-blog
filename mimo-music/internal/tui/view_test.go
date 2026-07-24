@@ -90,35 +90,7 @@ func TestViewSizeNotReady(t *testing.T) {
 	}
 }
 
-// TestViewLyricWindow 有歌词时中部渲染窗口:上下文暗 + > 当前行(沿用旧面板语义)。
-func TestViewLyricWindow(t *testing.T) {
-	t.Parallel()
-	lyric := []player.TimedLine{
-		{TimeMs: 1000, Text: "第一行"},
-		{TimeMs: 2000, Text: "第二行"},
-		{TimeMs: 3000, Text: "第三行"},
-	}
-	p := &fakePlayer{state: player.StatePlaying, curMs: 2500, totalMs: 203000}
-	m := New(p, testMeta(), lyric, 75, WithInitialSize(80, 24))
-
-	v := viewOf(m)
-	for _, want := range []string{"第一行", "> 第二行", "第三行"} {
-		if !strings.Contains(v, want) {
-			t.Errorf("歌词窗口应含 %q\n---\n%s", want, v)
-		}
-	}
-}
-
-// TestViewNoLyricNoWindow 无歌词不留空白面板(中部空)。
-func TestViewNoLyricNoWindow(t *testing.T) {
-	t.Parallel()
-	p := &fakePlayer{state: player.StatePlaying, curMs: 83000, totalMs: 203000}
-	m := New(p, testMeta(), nil, 75, WithInitialSize(80, 24))
-
-	if got := m.midContent(); got != "" {
-		t.Errorf("无歌词中部应为空,got %q", got)
-	}
-}
+// 歌词舞台与浮层行为测试见 stage_test.go(T2)。
 
 // TestViewHelpPopup ? 后帮助为居中 popup(带边框)。
 func TestViewHelpPopup(t *testing.T) {

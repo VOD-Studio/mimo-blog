@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -11,8 +12,11 @@ import (
 	"github.com/VOD-Studio/mimo-music/internal/cli/player"
 )
 
-// 底部固定行数:进度行 + notice 行 + 键位栏。顶栏 1 行。
+// 底部固定行数:进度行 + 浮层行 + 键位栏。顶栏 1 行。
 const fixedLines = 4
+
+// 舞台视口行数:上 2 渐暗 + 当前行 + 下 2 渐暗(PRD-0016)。
+const stageLines = 5
 
 // render 主视图(纯函数,只读采样值)。
 func (m Model) render() string {
@@ -30,20 +34,17 @@ func (m Model) render() string {
 	}
 	mid := lipgloss.Place(m.width, midH, lipgloss.Center, lipgloss.Center, m.midContent())
 
-	notice := ""
-	if m.notice != "" {
-		notice = noticeStyle.Render(m.notice)
-	}
 	return lipgloss.JoinVertical(lipgloss.Left,
 		m.topBar(),
 		mid,
 		m.progressLine(),
-		notice,
-		" "+dimStyle.Render("空格 暂停 · ← → ∓10s · ↑ ↓ 音量 · q 退出 · ? 帮助"),
+		m.overlayLine(),
+		" "+m.volumeBar()+"  "+dimStyle.Render("空格 暂停 · ← → ∓10s · ↑ ↓ 音量 · q 退出 · ? 帮助"),
 	)
 }
 
-// midContent 屏幕中央区:help/info 居中 popup 优先,否则歌词窗口,均无则空。
+// midContent 屏幕中央区:help/info 居中 popup 优先,否则歌词舞台;
+// 无歌词显示 ♪ 占位(不留空白面板;T3 由封面位取代)。
 func (m Model) midContent() string {
 	switch {
 	case m.showHelp:
@@ -51,9 +52,9 @@ func (m Model) midContent() string {
 	case m.showInfo:
 		return m.infoPopup()
 	case len(m.lyric) > 0:
-		return m.lyricWindow()
+		return m.lyricStage()
 	default:
-		return ""
+		return faintStyle.Render("♪")
 	}
 }
 
@@ -78,29 +79,48 @@ func (m Model) topBar() string {
 // (PRD「缓冲中(水位可见)」,语义沿旧状态栏)。
 func (m Model) progressLine() string {
 	left := fmt.Sprintf(" %s %s ", stateIcon(m.state), fmtClock(m.curMs))
-	right := fmt.Sprintf(" %s  %s", fmtClock(m.totalMs), m.volumeBar())
+	right := fmt.Sprintf(" %s", fmtClock(m.totalMs))
 	barW := m.width - lipgloss.Width(left) - lipgloss.Width(right)
 	return left + bar(m.curMs, m.totalMs, barW) + right
 }
 
-// lyricWindow 歌词简单窗口(T1 沿旧面板语义):上一行 + > 当前行 + 下一行。
-// 当前行用 currentLyricIndex 二分查找;首/末行缺省的上下文行留空。
-// 舞台化(5 行视口/渐暗/弹簧)属 T2。
-func (m Model) lyricWindow() string {
-	idx := currentLyricIndex(m.lyric, m.curMs)
-	prev, cur, next := "", "", ""
-	if idx > 0 {
-		prev = m.lyric[idx-1].Text
+// overlayLine 浮层行(音量/notice 同通道):音量键弹音量条,notice 弹提示文本。
+// 弹簧入场由 overlayOffset 驱动(行粒度滑入);无浮层时空行保持布局稳定。
+func (m Model) overlayLine() string {
+	if m.overlay == overlayNone || int(math.Round(m.overlayOffset)) != 0 {
+		return ""
 	}
-	cur = m.lyric[idx].Text
-	if idx+1 < len(m.lyric) {
-		next = m.lyric[idx+1].Text
+	switch m.overlay {
+	case overlayVolume:
+		return " " + m.volumeOverlay()
+	case overlayNotice:
+		return " " + noticeStyle.Render(m.notice)
 	}
-	return lipgloss.JoinVertical(lipgloss.Center,
-		dimStyle.Render(prev),
-		lyricStyle.Render("> "+cur),
-		dimStyle.Render(next),
-	)
+	return ""
+}
+
+// lyricStage 歌词舞台:视口 5 行,上 2 渐暗、当前行高亮 bold、下 2 渐暗,
+// 当前行固定视觉中心。换行弹簧:stageOffset 非零时窗口整体偏移
+// (新行从 ±1 行滑入),终端行粒度下按 round(offset) 行渲染。
+func (m Model) lyricStage() string {
+	center := m.lastLyricIdx - int(math.Round(m.stageOffset))
+	lines := make([]string, 0, stageLines)
+	for d := -2; d <= 2; d++ {
+		idx := center + d
+		text := ""
+		if idx >= 0 && idx < len(m.lyric) {
+			text = m.lyric[idx].Text
+		}
+		switch d {
+		case -2, 2:
+			lines = append(lines, farStyle.Render(text))
+		case -1, 1:
+			lines = append(lines, nearStyle.Render(text))
+		default:
+			lines = append(lines, lyricStyle.Render("> "+text))
+		}
+	}
+	return lipgloss.JoinVertical(lipgloss.Center, lines...)
 }
 
 // helpPopup 键位帮助(居中 styled popup,文案沿旧 helpLines)。
@@ -154,14 +174,23 @@ func (m Model) title() string {
 	return s
 }
 
-// volumeBar 音量行内嵌段:🔊 ▓▓▓░░ 62%(静音 🔇)。
+// volumeBar 常驻音量段(键位栏行):🔊 ▓▓▓░░ 62%(静音 🔇)。
 func (m Model) volumeBar() string {
+	return m.volBar(5)
+}
+
+// volumeOverlay 浮层音量条:比常驻段宽一倍,突出操作反馈。
+func (m Model) volumeOverlay() string {
+	return m.volBar(10)
+}
+
+// volBar 音量条渲染:▓ 填充(主色) + ░ 空 + 百分比。
+func (m Model) volBar(width int) string {
 	icon := "🔊"
 	if m.muted {
 		icon = "🔇"
 	}
 	vol := m.effectiveVol()
-	const width = 5
 	filled := vol * width / 100
 	return fmt.Sprintf("%s %s%s %d%%",
 		icon,
