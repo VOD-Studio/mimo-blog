@@ -96,20 +96,13 @@ func shellName(shellPath string) string {
 }
 
 // completionInstallHint 返回该 shell 的一键安装命令。
-// 用 cobra 生成的脚本写到常见位置(用户需 source 或重开终端)。
+// 统一指向 musicctl install-completion(自动检测 shell + 生成脚本 + 写配置)。
 func completionInstallHint(shell string) string {
 	switch shell {
-	case "zsh":
-		return "mkdir -p ~/.zsh/completions && musicctl completion zsh > ~/.zsh/completions/_musicctl" +
-			"\n        并在 ~/.zshrc 加: fpath=(~/.zsh/completions $fpath),重开终端"
-	case "bash":
-		return "mkdir -p ~/.local/share/bash-completion/completions && " +
-			"musicctl completion bash > ~/.local/share/bash-completion/completions/musicctl"
-	case "fish":
-		return "mkdir -p ~/.config/fish/completions && " +
-			"musicctl completion fish > ~/.config/fish/completions/musicctl.fish"
+	case "zsh", "bash", "fish":
+		return "运行 musicctl install-completion 自动安装(生成脚本 + 配置,幂等)"
 	default:
-		return "运行 musicctl completion <shell> 并按 shell 文档 source"
+		return "运行 musicctl install-completion,或手动 musicctl completion <shell> 并按 shell 文档 source"
 	}
 }
 

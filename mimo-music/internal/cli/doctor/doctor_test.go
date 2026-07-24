@@ -106,21 +106,14 @@ func TestCompletionChecker_Installed_Pass(t *testing.T) {
 }
 
 func TestCompletionChecker_NotInstalled_WarnWithInstallCmd(t *testing.T) {
-	cases := []struct {
-		shell     string
-		wantInCmd string
-	}{
-		{"/bin/zsh", "~/.zsh/completions/_musicctl"},
-		{"/usr/bin/fish", "~/.config/fish/completions/musicctl.fish"},
-		{"/bin/bash", "bash-completion/completions/musicctl"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.shell, func(t *testing.T) {
-			c := CompletionChecker(tc.shell, func(string) (string, bool) { return "", false })
+	cases := []string{"/bin/zsh", "/usr/bin/fish", "/bin/bash"}
+	for _, shell := range cases {
+		t.Run(shell, func(t *testing.T) {
+			c := CompletionChecker(shell, func(string) (string, bool) { return "", false })
 			r := c.Check()
 			require.Equal(t, StatusWarn, r.Status, "未装应 warn 非 fail")
 			require.NotEmpty(t, r.FixHint)
-			require.Contains(t, r.FixHint, tc.wantInCmd, "应给对应 shell 的一键命令")
+			require.Contains(t, r.FixHint, "install-completion", "应指向 install-completion 一键命令")
 		})
 	}
 }
