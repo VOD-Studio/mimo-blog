@@ -43,8 +43,8 @@ func (m Model) render() string {
 	)
 }
 
-// midContent 屏幕中央区:help/info 居中 popup 优先,否则歌词舞台;
-// 无歌词显示 ♪ 占位(不留空白面板;T3 由封面位取代)。
+// midContent 屏幕中央区:help/info 居中 popup 优先;有歌词时封面 + 舞台并排;
+// 无歌词时封面居中放大一档(不留空白面板)。
 func (m Model) midContent() string {
 	switch {
 	case m.showHelp:
@@ -52,10 +52,36 @@ func (m Model) midContent() string {
 	case m.showInfo:
 		return m.infoPopup()
 	case len(m.lyric) > 0:
-		return m.lyricStage()
+		return lipgloss.JoinHorizontal(lipgloss.Center, m.coverView(), "   ", m.lyricStage())
 	default:
-		return faintStyle.Render("♪")
+		return m.coverView()
 	}
+}
+
+// 封面 rect:有歌词 20×10(与舞台并排);无歌词 30×15(居中放大一档,PRD user story 6)。
+// 三种协议渲染占用同一 rect(高度保持,降级不 reflow)。
+const (
+	coverColsWithLyric = 20
+	coverRowsWithLyric = 10
+	coverColsNoLyric   = 30
+	coverRowsNoLyric   = 15
+)
+
+// coverRect 当前状态的封面区尺寸(单元格)。
+func (m Model) coverRect() (cols, rows int) {
+	if len(m.lyric) > 0 {
+		return coverColsWithLyric, coverRowsWithLyric
+	}
+	return coverColsNoLyric, coverRowsNoLyric
+}
+
+// coverView 封面区渲染:已加载用协议渲染缓存;未加载/失败/off 用 ♪ 占位。
+func (m Model) coverView() string {
+	cols, rows := m.coverRect()
+	if len(m.coverLines) > 0 {
+		return strings.Join(m.coverLines, "\n")
+	}
+	return coverPlaceholder(cols, rows)
 }
 
 // topBar 顶栏:♪ 标题(左) + 音质徽章(右)。

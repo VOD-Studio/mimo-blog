@@ -11,6 +11,8 @@
 package tui
 
 import (
+	"fmt"
+	"image"
 	"io"
 	"os"
 	"time"
@@ -55,6 +57,7 @@ type SongMeta struct {
 	Artist      string // 主艺人
 	Album       string // 专辑名
 	PublishTime string // 专辑发行时间原始串(yearOf 解析)
+	PicURL      string // 专辑封面 URL(Album.PicUrl;空 = 无封面,占位)
 	Level       int    // 音质 level(info popup 展示)
 	Format      string // 音源格式(mp3/flac)
 	Bitrate     int64  // 码率 bps(徽章展示 kbps)
@@ -73,6 +76,16 @@ type Model struct {
 
 	showHelp bool
 	showInfo bool
+
+	// 封面(T3):协议矩阵渲染。coverImg 解码一次(T4 取色复用);
+	// coverLines 为加载时的渲染缓存(View 纯);coverTransmitted 标记 kitty
+	// 已传输(退出时按 id 删除)。
+	coverProto       coverProtocol
+	coverFetch       coverFetcher
+	coverImg         image.Image
+	coverLines       []string
+	coverFailed      bool
+	coverTransmitted bool
 
 	// overlay 浮层(音量/notice 同通道);notice 为 overlayNotice 的文本内容。
 	overlay   overlayKind
@@ -109,6 +122,8 @@ type config struct {
 	width       int
 	height      int
 	now         func() time.Time
+	getenv      func(string) string
+	coverFetch  coverFetcher
 }
 
 // Option 配置 Run。
@@ -144,9 +159,19 @@ func WithClock(now func() time.Time) Option {
 	return func(c *config) { c.now = now }
 }
 
+// WithEnviron 注入环境变量读取(测试协议检测矩阵;生产 os.Getenv)。
+func WithEnviron(getenv func(string) string) Option {
+	return func(c *config) { c.getenv = getenv }
+}
+
+// WithCoverFetcher 注入封面拉取(测试合成图;生产 songdl.FetchCover)。
+func WithCoverFetcher(fetch coverFetcher) Option {
+	return func(c *config) { c.coverFetch = fetch }
+}
+
 // New 构造播放屏模型。vol 为启动音量(0-100,命令层已校验)。
 func New(p player.Player, meta SongMeta, lyric []player.TimedLine, vol int, opts ...Option) Model {
-	cfg := config{sampleEvery: sampleEvery, now: time.Now}
+	cfg := config{sampleEvery: sampleEvery, now: time.Now, getenv: os.Getenv, coverFetch: defaultCoverFetcher}
 	for _, o := range opts {
 		o(&cfg)
 	}
@@ -160,6 +185,8 @@ func New(p player.Player, meta SongMeta, lyric []player.TimedLine, vol int, opts
 		height:       cfg.height,
 		sampleEvery:  cfg.sampleEvery,
 		now:          cfg.now,
+		coverProto:   detectCoverProtocol(cfg.getenv),
+		coverFetch:   cfg.coverFetch,
 		stageSpring:  harmonica.NewSpring(harmonica.FPS(frameFPS), 6.0, 0.7),
 		overlaySpring: harmonica.NewSpring(harmonica.FPS(frameFPS), 6.0, 0.7),
 	}
@@ -207,9 +234,13 @@ func (m *Model) sample() {
 	}
 }
 
-// Init 启动采样 + 动画双节拍。
+// Init 启动采样 + 动画双节拍;有封面 URL 且协议未关闭时异步拉取封面。
 func (m Model) Init() tea.Cmd {
-	return tea.Batch(m.sampleTickCmd(), m.frameCmd())
+	cmds := []tea.Cmd{m.sampleTickCmd(), m.frameCmd()}
+	if m.meta.PicURL != "" && m.coverProto != coverOff {
+		cmds = append(cmds, fetchCoverCmd(m.coverFetch, m.meta.PicURL))
+	}
+	return tea.Batch(cmds...)
 }
 
 // Update 消息分派:窗口尺寸 / 采样节拍 / 动画帧 / 键盘。
@@ -232,6 +263,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.overlay = overlayNone
 		}
 		return m, m.frameCmd()
+	case coverLoadedMsg:
+		// 封面就绪:渲染缓存一次,View 纯读缓存。
+		m.coverImg = msg.img
+		cols, rows := m.coverRect()
+		m.coverLines = renderCoverLines(m.coverProto, msg.png, msg.img, cols, rows)
+		if m.coverProto == coverKitty {
+			// 一次性传输(transmit-once);View 行只含 placement。
+			m.coverTransmitted = true
+			return m, tea.Raw(kittyTransmitSeq(msg.png))
+		}
+		return m, nil
+	case coverFailedMsg:
+		// 拉取/解码失败静默降级:占位展示(布局不变),取色用默认调色板。
+		m.coverFailed = true
+		return m, nil
 	case tea.KeyPressMsg:
 		return m.handleKey(msg)
 	}
@@ -277,6 +323,8 @@ func Run(p player.Player, meta SongMeta, lyric []player.TimedLine, vol int, opts
 		output:      os.Stderr,
 		sampleEvery: sampleEvery,
 		now:         time.Now,
+		getenv:      os.Getenv,
+		coverFetch:  defaultCoverFetcher,
 	}
 	for _, o := range opts {
 		o(&cfg)
@@ -297,6 +345,10 @@ func Run(p player.Player, meta SongMeta, lyric []player.TimedLine, vol int, opts
 		progOpts = append(progOpts, tea.WithWindowSize(cfg.width, cfg.height))
 	}
 	prog = tea.NewProgram(m, progOpts...)
-	_, err := prog.Run()
+	final, err := prog.Run()
+	// 退出清理:kitty 已传输图像按 id 删除,不残留像素内存(覆盖 q/Esc/EOF 全路径)。
+	if fm, ok := final.(Model); ok && fm.coverTransmitted {
+		_, _ = fmt.Fprint(cfg.output, kittyDeleteSeq())
+	}
 	return err
 }
